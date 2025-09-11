@@ -1,7 +1,5 @@
-# Project Structure
-```
-├── [README.md](README.md)
-├── [generate_readme.py](generate_readme.py)
+# Структура проекта
+
 ├── [1 semester](1%20semester)
 │   ├── [misc](1%20semester/misc)
 │   ├── [notebooks](1%20semester/notebooks)
@@ -11,4 +9,3 @@
 ├── [2 semester](2%20semester)
 ├── [3 semester](3%20semester)
 └── [4 semester](4%20semester)
-```
