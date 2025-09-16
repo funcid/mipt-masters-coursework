@@ -7,6 +7,11 @@
 ![Нажатие на start capturing packets](start.png)
 
 3. Посетил собственный web-ресурс - <a href="funcfund.ru">funcfund.ru</a>
+
+```
+(ip.src == 1.1.1.1) && (udp.port == 53 or tcp.port == 53)
+```
+
 4. Нажав на _stop capturing packets_, получил _.pcapng_ файл
 
 ![Нажатие на stop capturing packets](stop.png)
