@@ -3,6 +3,7 @@ import urllib.parse
 
 EXCLUDE_DIRS = {".git", "__pycache__", ".ipynb_checkpoints"}
 EXCLUDE_FILES = {"README.md", "generate_readme.py"}
+INCLUDE_EXTS = {".md", ".ipynb", ".java", ".kt", ".py"}
 
 def tree(dir_path: str, level: int = 0) -> list[str]:
     entries = [e for e in os.listdir(dir_path) if not e.startswith(".")]
@@ -14,15 +15,22 @@ def tree(dir_path: str, level: int = 0) -> list[str]:
         path = os.path.join(dir_path, entry)
         rel_path = os.path.relpath(path, ".").replace("\\", "/")
 
-        if entry in EXCLUDE_FILES:
-            continue
-
-        link = f"[{entry}]({urllib.parse.quote(rel_path)})"
-        indent = "  " * level
-        lines.append(f"{indent}- {link}")
-
         if os.path.isdir(path):
-            lines.extend(tree(path, level + 1))
+            # Сначала строим список детей
+            children = tree(path, level + 1)
+            if children:  # Папка пустая → пропускаем
+                indent = "  " * level
+                link = f"[{entry}]({urllib.parse.quote(rel_path)})"
+                lines.append(f"{indent}- {link}")
+                lines.extend(children)
+        else:
+            if entry in EXCLUDE_FILES:
+                continue
+            _, ext = os.path.splitext(entry)
+            if ext.lower() in INCLUDE_EXTS:
+                indent = "  " * level
+                link = f"[{entry}]({urllib.parse.quote(rel_path)})"
+                lines.append(f"{indent}- {link}")
     return lines
 
 lines = ["# Структура проекта", ""]
