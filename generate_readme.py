@@ -2,7 +2,7 @@ import os
 import urllib.parse
 
 EXCLUDE_DIRS = {".git", "__pycache__", ".ipynb_checkpoints"}
-EXCLUDE_FILES = {"README.md", "generate_readme.py"}
+EXCLUDE_FILES = {"README.md"}
 INCLUDE_EXTS = {".md", ".ipynb", ".java", ".kt", ".py"}
 
 def tree(dir_path: str, level: int = 0) -> list[str]:
