@@ -14,6 +14,7 @@
     - [HW2_Python_Files_And_Data_Structures.ipynb](1%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/HW2_Python_Files_And_Data_Structures.ipynb)
     - [HW3_Install_and_Use_Ubuntu.ipynb](1%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/HW3_Install_and_Use_Ubuntu.ipynb)
     - [HW3_Linear_Algebra_Practice_and_Graph_Tree_Properties.ipynb](1%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/HW3_Linear_Algebra_Practice_and_Graph_Tree_Properties.ipynb)
+    - [HW3_Python_Classes.ipynb](1%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/HW3_Python_Classes.ipynb)
     - [HW4_Final_Introduction_Work.ipynb](1%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/HW4_Final_Introduction_Work.ipynb)
     - [HW4_Graph_Algorithms_and_Matrix_Diagonalization.ipynb](1%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/HW4_Graph_Algorithms_and_Matrix_Diagonalization.ipynb)
     - [Илья Волков. Построение распределённых систем.ipynb](1%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/%D0%98%D0%BB%D1%8C%D1%8F%20%D0%92%D0%BE%D0%BB%D0%BA%D0%BE%D0%B2.%20%D0%9F%D0%BE%D1%81%D1%82%D1%80%D0%BE%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%80%D0%B0%D1%81%D0%BF%D1%80%D0%B5%D0%B4%D0%B5%D0%BB%D1%91%D0%BD%D0%BD%D1%8B%D1%85%20%D1%81%D0%B8%D1%81%D1%82%D0%B5%D0%BC.ipynb)
