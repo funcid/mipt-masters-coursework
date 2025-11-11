@@ -1,3 +1,6 @@
 [submodule "1 семестр/services/financial_tracker"]
 	path = 1 семестр/services/financial_tracker
 	url = https://github.com/BHEMBD-25-PP-1/financial_tracker
+[submodule "1 семестр/services/funcfund"]
+	path = 1 семестр/services/funcfund
+	url = https://github.com/funcid/funcfund
