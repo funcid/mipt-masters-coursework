@@ -1,0 +1,68 @@
+{
+  "districts": [
+    {
+      "id": 1,
+      "name": "Центральный",
+      "polygon": [
+        [0, 0], [200, 0], [200, 150], [150, 150], [150, 200], [0, 200], [0, 0]
+      ]
+    },
+    {
+      "id": 2, 
+      "name": "Северный",
+      "polygon": [
+        [0, 200], [150, 200], [150, 150], [200, 150], [200, 300], [0, 300], [0, 200]
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Восточный",
+      "polygon": [
+        [200, 0], [300, 0], [300, 300], [200, 300], [200, 150], [150, 150], [150, 200], [200, 200], [200, 0]
+      ]
+    }
+  ],
+
+  "historical_orders": [
+    {"order_id": 1001, "delivery_point": [50, 50], "weight": 1.2},
+    {"order_id": 1002, "delivery_point": [45, 55], "weight": 0.8},
+    {"order_id": 1003, "delivery_point": [55, 45], "weight": 3.1},
+    {"order_id": 1004, "delivery_point": [180, 180], "weight": 2.0},
+    {"order_id": 1005, "delivery_point": [170, 170], "weight": 1.5},
+    {"order_id": 1006, "delivery_point": [175, 175], "weight": 0.9},
+    {"order_id": 1007, "delivery_point": [250, 50], "weight": 4.2},
+    {"order_id": 1008, "delivery_point": [240, 60], "weight": 1.8},
+    {"order_id": 1009, "delivery_point": [260, 40], "weight": 2.7},
+    {"order_id": 1010, "delivery_point": [30, 170], "weight": 1.1},
+    {"order_id": 1011, "delivery_point": [40, 160], "weight": 3.3},
+    {"order_id": 1012, "delivery_point": [35, 165], "weight": 2.1},
+    {"order_id": 1013, "delivery_point": [270, 250], "weight": 1.4},
+    {"order_id": 1014, "delivery_point": [280, 240], "weight": 2.8},
+    {"order_id": 1015, "delivery_point": [260, 260], "weight": 0.7}
+  ],
+  
+  "existing_pickup_points": [
+    {
+      "dp_id": "PP_CENTER",
+      "location": [100, 100],
+      "capacity": 800
+    },
+    {
+      "dp_id": "PP_NORTH", 
+      "location": [80, 220],
+      "capacity": 500
+    },
+    {
+      "dp_id": "PP_EAST",
+      "location": [250, 150],
+      "capacity": 600
+    }
+  ],
+  
+  "task_parameters": {
+    "new_pp_count": 2,
+    "max_delivery_radius": 80,
+    "interpolation_resolution": 20
+  }
+}
+
