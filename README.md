@@ -54,3 +54,7 @@
       - [voronoi.py](1%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/services/delivery_network_optimization/voronoi.py)
     - [financial_tracker](1%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/services/financial_tracker) 🔗 [submodule](https://github.com/BHEMBD-25-PP-1/financial_tracker)
     - [funcfund](1%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/services/funcfund) 🔗 [submodule](https://github.com/funcid/funcfund)
+- [2 семестр](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80)
+  - [notebooks](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks)
+    - [english self-study](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study)
+      - [План разввития.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/%D0%9F%D0%BB%D0%B0%D0%BD%20%D1%80%D0%B0%D0%B7%D0%B2%D0%B2%D0%B8%D1%82%D0%B8%D1%8F.ipynb)
