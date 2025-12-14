@@ -57,4 +57,5 @@
 - [2 семестр](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80)
   - [notebooks](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks)
     - [english self-study](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study)
+      - [Work Family. Урок первый.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/Work%20Family.%20%D0%A3%D1%80%D0%BE%D0%BA%20%D0%BF%D0%B5%D1%80%D0%B2%D1%8B%D0%B9.ipynb)
       - [План разввития.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/%D0%9F%D0%BB%D0%B0%D0%BD%20%D1%80%D0%B0%D0%B7%D0%B2%D0%B2%D0%B8%D1%82%D0%B8%D1%8F.ipynb)
