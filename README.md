@@ -62,4 +62,5 @@
       - [Work Family. Lesson 2.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/Work%20Family.%20Lesson%202.ipynb)
       - [Work Family. Lesson 3.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/Work%20Family.%20Lesson%203.ipynb)
       - [Work Family. Lesson 4 Part 1.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/Work%20Family.%20Lesson%204%20Part%201.ipynb)
+      - [Work Family. Lesson 4 Part 2.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/Work%20Family.%20Lesson%204%20Part%202.ipynb)
       - [План разввития.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/%D0%9F%D0%BB%D0%B0%D0%BD%20%D1%80%D0%B0%D0%B7%D0%B2%D0%B2%D0%B8%D1%82%D0%B8%D1%8F.ipynb)
