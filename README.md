@@ -58,6 +58,7 @@
 - [2 семестр](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80)
   - [notebooks](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks)
     - [english self-study](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study)
+      - [HR Screening Experience.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/HR%20Screening%20Experience.ipynb)
       - [Mock YT Interview 1.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/Mock%20YT%20Interview%201.ipynb)
       - [Work Family. Lesson 1.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/Work%20Family.%20Lesson%201.ipynb)
       - [Work Family. Lesson 2.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/Work%20Family.%20Lesson%202.ipynb)
