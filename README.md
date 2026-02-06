@@ -62,6 +62,7 @@
     - [english self-study](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study)
       - [Mock YT Interview 1.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/Mock%20YT%20Interview%201.ipynb)
       - [Screening English Experience.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/Screening%20English%20Experience.ipynb)
+      - [System Design Interview Preparation.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/System%20Design%20Interview%20Preparation.ipynb)
       - [Talks Feedback.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/Talks%20Feedback.ipynb)
       - [Tech Interview Preparation.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/Tech%20Interview%20Preparation.ipynb)
       - [Work Family. Lesson 1.ipynb](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/notebooks/english%20self-study/Work%20Family.%20Lesson%201.ipynb)
