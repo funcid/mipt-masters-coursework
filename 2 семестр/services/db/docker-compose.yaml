@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: stroy-postgres
+    environment:
+      POSTGRES_DB: stroy
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./stroy.backup:/stroy.backup
+      - ./restore.sh:/docker-entrypoint-initdb.d/restore.sh
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - stroy-net
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: stroy-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - stroy-net
+
+volumes:
+  pg_data:
+
+networks:
+  stroy-net:
