@@ -1,3 +1,6 @@
 **/.ipynb_checkpoints/**
 *.iso
 .idea
+
+# Sensitive interview transcripts (custdev)
+2 семестр/services/custdev/*.txt
