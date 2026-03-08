@@ -1,0 +1,25 @@
+services:
+  app1:
+    build: ./app1
+    container_name: homework_app1
+    expose:
+      - "8000"
+    networks:
+      - homework_net
+
+  app2:
+    build: ./app2
+    container_name: homework_app2
+    ports:
+      - "8080:8000"
+    environment:
+      APP1_HOST: app1
+      APP1_PORT: "8000"
+    depends_on:
+      - app1
+    networks:
+      - homework_net
+
+networks:
+  homework_net:
+    driver: bridge
