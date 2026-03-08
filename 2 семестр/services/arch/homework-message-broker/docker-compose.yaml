@@ -1,0 +1,65 @@
+services:
+  kafka:
+    image: confluentinc/cp-kafka:7.7.1
+    container_name: homework_kafka
+    ports:
+      - "9092:9092"
+    environment:
+      CLUSTER_ID: "4L6g3nShT-eMCtK--X86sw"
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: homework_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: errors_db
+      POSTGRES_USER: errors_user
+      POSTGRES_PASSWORD: errors_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  producer:
+    build: ./producer
+    container_name: homework_error_producer
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC: errors
+    depends_on:
+      - kafka
+
+  consumer:
+    build: ./consumer
+    container_name: homework_error_consumer
+    restart: unless-stopped
+    ports:
+      - "8002:8000"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC: errors
+      KAFKA_GROUP_ID: errors-writer
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: errors_db
+      POSTGRES_USER: errors_user
+      POSTGRES_PASSWORD: errors_pass
+    depends_on:
+      - kafka
+      - postgres
+
+volumes:
+  postgres_data:
