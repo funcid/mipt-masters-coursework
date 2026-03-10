@@ -8,13 +8,11 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
-KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "errors")
+KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "lesson-messages")
 
 
-class ErrorIn(BaseModel):
-    code: int
+class MessageIn(BaseModel):
     message: str
-    details: str
 
 
 async def create_producer_with_retries(max_attempts: int = 30) -> AIOKafkaProducer:
@@ -26,7 +24,7 @@ async def create_producer_with_retries(max_attempts: int = 30) -> AIOKafkaProduc
         try:
             await producer.start()
             return producer
-        except Exception:
+        except Exception:  # noqa: BLE001
             with suppress(Exception):
                 await producer.stop()
             if attempt == max_attempts:
@@ -45,7 +43,7 @@ async def lifespan(app: FastAPI):
         await producer.stop()
 
 
-app = FastAPI(title="error-producer", lifespan=lifespan)
+app = FastAPI(title="lesson-producer", lifespan=lifespan)
 
 
 @app.get("/health")
@@ -53,9 +51,9 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.post("/errors/")
-async def create_error(error: ErrorIn) -> dict[str, str]:
-    payload = error.model_dump()
+@app.post("/messages")
+async def create_message(data: MessageIn) -> dict[str, str]:
+    payload = data.model_dump()
     try:
         await app.state.producer.send_and_wait(KAFKA_TOPIC, payload)
     except Exception as exc:  # noqa: BLE001
