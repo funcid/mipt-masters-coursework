@@ -20,15 +20,17 @@ ORDER BY e.hire_date
 LIMIT 1;
 
 SELECT COALESCE(
-    AVG(EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.birthdate))), 
+    AVG(EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.birthdate))),
     0
 )
 FROM employee e
 JOIN person p ON p.person_id = e.person_id
 WHERE e.dismissal_date IS NOT NULL
 AND e.employee_id NOT IN (
-    SELECT UNNEST(employees_id)
-    FROM project
+    SELECT UNNEST(employees_id) FROM project
+)
+AND e.employee_id NOT IN (
+    SELECT project_manager_id FROM project
 );
 
 SELECT SUM(pp.amount)
@@ -42,47 +44,44 @@ WHERE ci.city_name = 'Жуковский'
 AND co.country_name = 'Россия'
 AND pp.fact_transaction_timestamp IS NOT NULL;
 
-WITH bonuses AS (
-    SELECT
-        project_manager_id,
-        project_cost * 0.01 AS bonus
-    FROM project
-    WHERE status = 'Завершен'
-)
 SELECT
-    b.project_manager_id,
+    p.project_manager_id,
     per.full_fio,
-    SUM(b.bonus) AS bonus_sum
-FROM bonuses b
-JOIN employee e ON e.employee_id = b.project_manager_id
+    SUM(p.project_cost * 0.01) AS bonus
+FROM project p
+JOIN employee e ON e.employee_id = p.project_manager_id
 JOIN person per ON per.person_id = e.person_id
-GROUP BY b.project_manager_id, per.full_fio
-HAVING SUM(b.bonus) = (
-    SELECT MAX(total_bonus)
-    FROM (
-        SELECT
-            project_manager_id,
-            SUM(project_cost * 0.01) AS total_bonus
-        FROM project
-        WHERE status = 'Завершен'
-        GROUP BY project_manager_id
-    ) t
-);
+WHERE p.status = 'Завершен'
+GROUP BY p.project_manager_id, per.full_fio
+ORDER BY bonus DESC;
 
-WITH payments AS (
+WITH monthly AS (
     SELECT
-        plan_payment_date,
-        SUM(amount) OVER (
-            ORDER BY plan_payment_date
-        ) AS cumulative_sum
+        DATE_TRUNC('month', plan_payment_date) AS month_dt,
+        SUM(amount) AS month_sum
     FROM project_payment
     WHERE payment_type = 'Авансовый'
+    GROUP BY DATE_TRUNC('month', plan_payment_date)
+),
+cumulative AS (
+    SELECT
+        month_dt,
+        SUM(month_sum) OVER (ORDER BY month_dt) AS cumulative_sum
+    FROM monthly
+),
+limit_month AS (
+    SELECT month_dt
+    FROM cumulative
+    WHERE cumulative_sum > 30000000
+    ORDER BY month_dt
+    LIMIT 1
 )
-SELECT plan_payment_date
-FROM payments
-WHERE cumulative_sum > 30000000
-ORDER BY plan_payment_date
-LIMIT 1;
+SELECT MIN(plan_payment_date)
+FROM project_payment
+WHERE payment_type = 'Авансовый'
+AND DATE_TRUNC('month', plan_payment_date) = (
+    SELECT month_dt FROM limit_month
+);
 
 WITH RECURSIVE units AS (
     SELECT unit_id
@@ -95,7 +94,7 @@ WITH RECURSIVE units AS (
     FROM company_structure cs
     JOIN units u ON cs.parent_id = u.unit_id
 )
-SELECT SUM(ep.salary)
+SELECT SUM(ep.salary * ep.rate)
 FROM units u
 JOIN position p ON p.unit_id = u.unit_id
 JOIN employee_position ep ON ep.position_id = p.position_id;
@@ -138,31 +137,42 @@ SELECT pys.yr, pys.project_sum
 FROM project_year_sum pys, avg_sum
 WHERE pys.project_sum < avg_sum.total_avg;
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS project_report_mv AS
+CREATE MATERIALIZED VIEW project_report_mv AS
+WITH last_payments AS (
+    SELECT
+        project_id,
+        amount,
+        fact_transaction_timestamp,
+        ROW_NUMBER() OVER (
+            PARTITION BY project_id
+            ORDER BY fact_transaction_timestamp DESC
+        ) rn
+    FROM project_payment
+)
 SELECT
     p.project_id,
     p.project_name,
-    MAX(pp.fact_transaction_timestamp) AS last_payment_date,
-    (
-        SELECT amount
-        FROM project_payment
-        WHERE project_id = p.project_id
-        ORDER BY fact_transaction_timestamp DESC
-        LIMIT 1
-    ) AS last_payment_amount,
+    lp.fact_transaction_timestamp AS last_payment_date,
+    lp.amount AS last_payment_amount,
     per.full_fio,
     c.customer_name,
-    STRING_AGG(tw.type_of_work_name, ', ') AS works
+    STRING_AGG(DISTINCT tw.type_of_work_name, ', ') AS works
 FROM project p
-LEFT JOIN project_payment pp ON pp.project_id = p.project_id
+LEFT JOIN last_payments lp
+    ON lp.project_id = p.project_id AND lp.rn = 1
 JOIN employee e ON e.employee_id = p.project_manager_id
 JOIN person per ON per.person_id = e.person_id
 JOIN customer c ON c.customer_id = p.customer_id
-LEFT JOIN customer_type_of_work ctw ON ctw.customer_id = c.customer_id
-LEFT JOIN type_of_work tw ON tw.type_of_work_id = ctw.type_of_work_id
+LEFT JOIN customer_type_of_work ctw
+    ON ctw.customer_id = c.customer_id
+LEFT JOIN type_of_work tw
+    ON tw.type_of_work_id = ctw.type_of_work_id
 GROUP BY
     p.project_id,
     p.project_name,
+    lp.fact_transaction_timestamp,
+    lp.amount,
     per.full_fio,
+    c.customer_id,
     c.customer_name;
 
