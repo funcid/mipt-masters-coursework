@@ -1,0 +1,119 @@
+{
+  "info": {
+    "_postman_id": "7d5956ff-f566-4f60-9617-bb74588e87ec",
+    "name": "Homework Authentication",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register user",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"StrongPass1!\"\n}"
+        },
+        "url": {
+          "raw": "{{auth_base_url}}/register",
+          "host": [
+            "{{auth_base_url}}"
+          ],
+          "path": [
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Authenticate user",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"StrongPass1!\"\n}"
+        },
+        "url": {
+          "raw": "{{auth_base_url}}/auth",
+          "host": [
+            "{{auth_base_url}}"
+          ],
+          "path": [
+            "auth"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const data = pm.response.json();",
+              "  pm.collectionVariables.set('jwt_token', data.token);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Create message",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Это тестовое сообщение\"\n}"
+        },
+        "url": {
+          "raw": "{{post_base_url}}/messages",
+          "host": [
+            "{{post_base_url}}"
+          ],
+          "path": [
+            "messages"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "auth_base_url",
+      "value": "http://localhost:8101"
+    },
+    {
+      "key": "post_base_url",
+      "value": "http://localhost:8102"
+    },
+    {
+      "key": "jwt_token",
+      "value": ""
+    }
+  ]
+}

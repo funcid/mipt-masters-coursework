@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: hw_auth_db
+    environment:
+      POSTGRES_DB: auth_demo
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d auth_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  auth_service:
+    build: ./auth_service
+    container_name: hw_auth_service
+    ports:
+      - "8101:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/auth_demo
+      JWT_SECRET: super-secret-key
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRE_MINUTES: "30"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  post_service:
+    build: ./post_service
+    container_name: hw_post_service
+    ports:
+      - "8102:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/auth_demo
+      JWT_SECRET: super-secret-key
+      JWT_ALGORITHM: HS256
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
