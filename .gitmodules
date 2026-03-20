@@ -6,7 +6,7 @@
 	url = https://github.com/funcid/funcfund
 [submodule "2 семестр/services/arch/mipt-msa-hw5"]
 	path = 2 семестр/services/arch/mipt-msa-hw5
-	url = https://github.com/sortedmap/mipt-msa-hw5
+	url = https://github.com/funcid/mipt-msa-hw5
 [submodule "2 семестр/services/arch/mipt-arch-2026-hw6"]
 	path = 2 семестр/services/arch/mipt-arch-2026-hw6
-	url = https://github.com/sortedmap/mipt-arch-2026-hw6
+	url = https://github.com/funcid/mipt-arch-2026-hw6
