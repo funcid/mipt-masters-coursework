@@ -1,0 +1,9 @@
+node_modules/
+dist/
+
+# Локальные переменные окружения (секреты GigaChat)
+.env
+.env.local
+*.local
+
+*.log
