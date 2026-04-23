@@ -1,11 +1,10 @@
-import type { ChatAttachment, Role } from '@/shared/api/types';
+import type { Role } from '@/shared/api/types';
 
 export interface ChatMessage {
   id: string;
   role: Role;
   content: string;
   createdAt: number;
-  attachments?: ChatAttachment[];
   /** Признак незавершённого ответа: например, когда пользователь остановил генерацию */
   interrupted?: boolean;
   /** Признак ошибки при генерации */

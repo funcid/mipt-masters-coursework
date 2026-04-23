@@ -15,28 +15,6 @@ import type {
 
 const BASE = '/api/gigachat';
 
-/**
- * Загружает изображение в GigaChat и возвращает его `id`.
- * Этот id затем используется в поле `attachments` сообщения
- * (multimodal-режим: модель «видит» картинку).
- */
-export async function uploadFile(file: File, signal?: AbortSignal): Promise<string> {
-  const form = new FormData();
-  form.append('file', file, file.name);
-  form.append('purpose', 'general');
-  const response = await fetch(`${BASE}/files`, {
-    method: 'POST',
-    body: form,
-    signal,
-  });
-  if (!response.ok) {
-    throw new Error(await formatError(response, 'files'));
-  }
-  const data = (await response.json()) as { id: string };
-  if (!data.id) throw new Error('GigaChat /files: ответ без поля id');
-  return data.id;
-}
-
 export async function fetchModels(signal?: AbortSignal): Promise<ModelsResponse> {
   const response = await fetch(`${BASE}/models`, {
     headers: { Accept: 'application/json' },

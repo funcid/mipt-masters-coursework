@@ -2,7 +2,7 @@
 
 Итоговая работа по дисциплине **«Основы frontend-разработки»** (2 семестр).
 
-Клон интерфейса ChatGPT на **React 18 + TypeScript** с интеграцией публичного **GigaChat API**. Поддерживает стриминг токенов через **Server-Sent Events**, markdown-рендеринг с подсветкой кода, историю чатов в `localStorage`, управление настройками модели и работу с изображениями (multimodal).
+Клон интерфейса ChatGPT на **React 18 + TypeScript** с интеграцией публичного **GigaChat API**. Поддерживает стриминг токенов через **Server-Sent Events**, markdown-рендеринг с подсветкой кода, историю чатов в `localStorage` и управление настройками модели.
 
 **Автор:** Царюк Артём Владимирович, МФТИ, магистратура  
 **Преподаватель:** Марк Садыков
@@ -55,7 +55,6 @@
 - **Fallback на REST**: если стриминг упал (не-2xx, разрыв), автоматически делается нестриминговый запрос.
 - Настраиваемые параметры запроса: `temperature`, `top_p`, `max_tokens`, `repetition_penalty`, `systemPrompt`, выбор модели.
 - `GET /api/v1/models` — выпадающий список моделей в настройках.
-- **Multimodal**: прикреплённые изображения загружаются в `POST /files`, полученный `id` уходит в `attachments` сообщения.
 - **OAuth**: прокси-сервер получает access-token у `ngw.devices.sberbank.ru:9443/api/v2/oauth`, кеширует с учётом `expires_at`.
 
 ### Дополнительно
@@ -94,7 +93,7 @@ src/
 │   ├── chat/       #   - chats store (zustand + persist), типы Chat/Message
 │   └── message/    #   - Message UI, разный рендер для user/assistant
 ├── features/       # пользовательские фичи
-│   ├── chat-send/  #   - хук useChatSend + InputField (SSE, abort, attachments)
+│   ├── chat-send/  #   - хук useChatSend + InputField (SSE, abort)
 │   ├── chat-search/#   - поиск по истории (searchChats)
 │   └── settings/   #   - панель параметров модели
 ├── widgets/        # композиция из features + entities
@@ -107,7 +106,7 @@ src/
 └── App.tsx
 ```
 
-API-слой вынесен в `shared/api` и реализует **паттерн «Адаптер»**: фронт ничего не знает о формате upstream, работает с типизированными функциями `sendMessage`, `streamMessage`, `streamOrFallback`, `fetchModels`, `uploadFile`.
+API-слой вынесен в `shared/api` и реализует **паттерн «Адаптер»**: фронт ничего не знает о формате upstream, работает с типизированными функциями `sendMessage`, `streamMessage`, `streamOrFallback`, `fetchModels`.
 
 BFF-прокси `server/index.js` решает сразу три проблемы:
 
@@ -239,21 +238,6 @@ data: [DONE]
 
 Парсится в `src/shared/api/sse.ts` и потоково дописывается в текущее `assistant`-сообщение.
 
-### Multimodal (изображение + вопрос)
-
-1. Пользователь нажимает «скрепку» в `InputField`, выбирает PNG/JPEG (< 8 МБ).
-2. Перед отправкой `useChatSend` вызывает `POST /api/gigachat/files` (multipart/form-data).
-3. GigaChat возвращает `{ id: "<uuid>" }`, id сохраняется в `ChatAttachment.fileId`.
-4. В теле `/chat/completions` сообщение принимает вид:
-
-```json
-{
-  "role": "user",
-  "content": "Что на картинке?",
-  "attachments": ["<uuid-from-/files>"]
-}
-```
-
 ---
 
 ## Скрипты
@@ -307,10 +291,6 @@ data: [DONE]
 - `stream: true` + SSE — см. выше.
 - Параметры `temperature`, `top_p`, `max_tokens`, `repetition_penalty` редактируемы через настройки.
 
-### Дополнительные баллы
-
-- Multimodal (2 балла): `POST /files` через BFF + `attachments` в `messages`.
-
 ---
 
 ## Как это работает внутри
@@ -346,6 +326,6 @@ async function fetchAccessToken() {
 ## Известные ограничения
 
 - В Windows из-за Node 22 рекомендуется держать `NODE_TLS_REJECT_UNAUTHORIZED=0` в dev. В production следует установить корневой сертификат Sber (`russian_trusted_root_ca.cer`) и убрать этот флаг.
-- Файлы > 8 МБ отсекаются на фронте, чтобы не упираться в лимит раздела `/files`.
 - localStorage на некоторых браузерах ограничен ~5 МБ; при большом количестве длинных чатов можно упереться. Миграция на IndexedDB (`idb-keyval`) — очевидное развитие.
-- Голосовой ввод / TTS в этой итерации намеренно не реализованы: держим scope в границах обязательных критериев + multimodal.
+- Голосовой ввод / TTS в этой итерации намеренно не реализованы: держим scope в границах обязательных критериев.
+- Multimodal (изображения) не поддерживается: публичный тариф GigaChat-Lite на момент сдачи работы его не предоставляет.

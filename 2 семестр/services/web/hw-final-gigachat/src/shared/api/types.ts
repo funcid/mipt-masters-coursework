@@ -1,23 +1,8 @@
 export type Role = 'system' | 'user' | 'assistant';
 
-export interface ChatAttachment {
-  /** Тип содержимого: для multimodal GigaChat передаётся как отдельное поле attachments */
-  kind: 'image';
-  /** Имя файла — для отображения в UI */
-  name: string;
-  /** data: URL для предпросмотра */
-  dataUrl: string;
-  /** MIME-тип, например image/png */
-  mimeType: string;
-  /** ID файла, выданный GigaChat после загрузки */
-  fileId?: string;
-}
-
 export interface ChatCompletionMessage {
   role: Role;
   content: string;
-  /** ID прикреплённых файлов (изображений), возвращаемые GigaChat /files */
-  attachments?: string[];
 }
 
 export interface CompletionParams {

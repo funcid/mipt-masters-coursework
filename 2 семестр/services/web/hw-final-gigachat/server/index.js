@@ -8,9 +8,9 @@
  *  - обходит CORS и особенности самоподписанного сертификата Sber на dev-машинах.
  *
  * Эндпоинты, которыми пользуется фронт:
+ *   GET  /api/gigachat/health           -> быстрый self-check
  *   GET  /api/gigachat/models           -> список моделей
  *   POST /api/gigachat/chat/completions -> чат (JSON или SSE text/event-stream)
- *   GET  /api/gigachat/health           -> быстрый self-check
  */
 
 import 'dotenv/config';
@@ -167,42 +167,6 @@ app.post('/api/gigachat/chat/completions', async (req, res) => {
     }
   } finally {
     res.end();
-  }
-});
-
-/**
- * Загрузка файла (изображения) в GigaChat. Возвращает JSON с полем `id`,
- * который фронт добавляет в `messages[i].attachments` для multimodal-запроса.
- *
- * На вход принимаем raw-поток (Content-Type: multipart/form-data от браузера),
- * просто прокидываем его в upstream с добавлением Bearer-токена.
- */
-app.post('/api/gigachat/files', express.raw({ type: '*/*', limit: '25mb' }), async (req, res) => {
-  let token;
-  try {
-    token = await fetchAccessToken();
-  } catch (error) {
-    res.status(500).json({ error: { code: 'AUTH', message: error.message } });
-    return;
-  }
-
-  try {
-    const upstream = await fetch(`${API_BASE}/files`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': req.headers['content-type'] || 'multipart/form-data',
-        Accept: 'application/json',
-      },
-      body: req.body,
-    });
-    const text = await upstream.text();
-    res
-      .status(upstream.status)
-      .type(upstream.headers.get('content-type') || 'application/json')
-      .send(text);
-  } catch (error) {
-    res.status(502).json({ error: { code: 'UPSTREAM', message: error.message } });
   }
 });
 

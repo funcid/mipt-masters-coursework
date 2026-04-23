@@ -63,24 +63,9 @@ export const Message = memo(function Message({ message, streaming }: MessageProp
 });
 
 function UserContent({ message }: { message: ChatMessage }) {
+  if (!message.content) return null;
   return (
-    <div className="space-y-3">
-      {message.attachments && message.attachments.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {message.attachments.map((a, idx) => (
-            <img
-              key={`${a.name}-${idx}`}
-              src={a.dataUrl}
-              alt={a.name}
-              className="h-28 w-28 rounded-md object-cover ring-1 ring-border-subtle"
-            />
-          ))}
-        </div>
-      ) : null}
-      {message.content ? (
-        <p className="whitespace-pre-wrap break-words leading-relaxed">{message.content}</p>
-      ) : null}
-    </div>
+    <p className="whitespace-pre-wrap break-words leading-relaxed">{message.content}</p>
   );
 }
 

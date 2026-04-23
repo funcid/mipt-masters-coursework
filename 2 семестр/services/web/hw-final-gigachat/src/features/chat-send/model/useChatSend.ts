@@ -1,20 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
 import { useChatsStore } from '@/entities/chat/model/store';
-import type { ChatAttachment, ChatCompletionMessage } from '@/shared/api/types';
-import { streamOrFallback, sendMessage, uploadFile } from '@/shared/api/gigachat';
-
-/** data:URL → File, чтобы загрузить в GigaChat /files как multipart */
-function dataUrlToFile(dataUrl: string, name: string, mimeType: string): File {
-  const [, base64] = dataUrl.split(',');
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return new File([bytes], name, { type: mimeType });
-}
+import type { ChatCompletionMessage } from '@/shared/api/types';
+import { streamOrFallback, sendMessage } from '@/shared/api/gigachat';
 
 interface SendPayload {
   text: string;
-  attachments?: ChatAttachment[];
 }
 
 /**
@@ -30,36 +20,19 @@ export function useChatSend() {
   const [isSending, setIsSending] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  const send = useCallback(async ({ text, attachments }: SendPayload) => {
+  const send = useCallback(async ({ text }: SendPayload) => {
     const trimmed = text.trim();
-    if (!trimmed && !(attachments && attachments.length)) return;
+    if (!trimmed) return;
     if (isSending) return;
 
     const store = useChatsStore.getState();
     let chatId = store.activeChatId;
     if (!chatId) chatId = store.createChat();
 
-    // 0. Грузим вложения в GigaChat /files, чтобы получить fileId (multimodal).
-    //    Если загрузка упадёт — продолжим без конкретного вложения, UI не ломаем.
-    const uploaded: ChatAttachment[] = [];
-    if (attachments?.length) {
-      for (const a of attachments) {
-        try {
-          const file = dataUrlToFile(a.dataUrl, a.name, a.mimeType);
-          const id = await uploadFile(file);
-          uploaded.push({ ...a, fileId: id });
-        } catch (error) {
-          console.warn('[useChatSend] uploadFile failed:', error);
-          uploaded.push(a);
-        }
-      }
-    }
-
     // 1. Добавляем user
     store.appendMessage(chatId, {
       role: 'user',
       content: trimmed,
-      attachments: uploaded.length ? uploaded : undefined,
     });
     store.autoTitle(chatId);
 
@@ -81,11 +54,8 @@ export function useChatSend() {
     }
     for (const m of fresh.messages) {
       if (m.id === assistantMsg.id) continue;
-      if (!m.content && !(m.attachments && m.attachments.length)) continue;
-      const payload: ChatCompletionMessage = { role: m.role, content: m.content };
-      const fileIds = (m.attachments ?? []).map((a) => a.fileId).filter(Boolean) as string[];
-      if (fileIds.length) payload.attachments = fileIds;
-      messages.push(payload);
+      if (!m.content) continue;
+      messages.push({ role: m.role, content: m.content });
     }
 
     const controller = new AbortController();
