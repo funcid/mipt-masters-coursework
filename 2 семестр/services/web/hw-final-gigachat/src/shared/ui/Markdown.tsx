@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { isValidElement, memo, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -11,6 +11,22 @@ interface MarkdownProps {
 }
 
 /**
+ * Рекурсивно собирает «чистый» текст из React-нод.
+ * Нужен, потому что после rehype-highlight children для code превращается
+ * в дерево <span class="hljs-*">...</span>, и String(children) даёт "[object Object]".
+ */
+function extractText(node: ReactNode): string {
+  if (node == null || typeof node === 'boolean') return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(extractText).join('');
+  if (isValidElement(node)) {
+    const children = (node.props as { children?: ReactNode }).children;
+    return extractText(children);
+  }
+  return '';
+}
+
+/**
  * Markdown-рендерер для ответов ассистента.
  *
  * Поддерживает:
@@ -19,37 +35,26 @@ interface MarkdownProps {
  *   - кастомный CodeBlock с кнопкой «скопировать».
  */
 export const Markdown = memo(function Markdown({ content, streaming }: MarkdownProps) {
-  const display = useMemo(() => {
-    if (!streaming) return content;
-    // При стриминге добавим невидимый маркер, чтобы каретка висела в конце.
-    return content;
-  }, [content, streaming]);
-
   return (
     <div className={`markdown ${streaming ? 'caret' : ''}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[[rehypeHighlight, { detect: true, ignoreMissing: true }]]}
         components={{
-          code(props) {
-            const { node, className, children, ...rest } = props as {
-              node?: unknown;
-              className?: string;
-              children?: React.ReactNode;
-              inline?: boolean;
-            };
-            const inline = (props as { inline?: boolean }).inline;
-            if (inline) {
+          code({ className, children, ...rest }) {
+            // В react-markdown v9 проп `inline` больше не пробрасывается,
+            // поэтому блоки кода опознаём по наличию language-* класса.
+            const match = /language-([\w-]+)/.exec(className ?? '');
+            if (!match) {
               return (
                 <code className={className} {...rest}>
                   {children}
                 </code>
               );
             }
-            const language = /language-([\w-]+)/.exec(className || '')?.[1] ?? '';
-            const raw = String(children).replace(/\n$/, '');
+            const code = extractText(children).replace(/\n$/, '');
             return (
-              <CodeBlock language={language} code={raw}>
+              <CodeBlock language={match[1]} code={code}>
                 <code className={className}>{children}</code>
               </CodeBlock>
             );
@@ -63,7 +68,7 @@ export const Markdown = memo(function Markdown({ content, streaming }: MarkdownP
           },
         }}
       >
-        {display}
+        {content}
       </ReactMarkdown>
     </div>
   );
