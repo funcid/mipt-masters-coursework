@@ -2,7 +2,7 @@ import os
 import urllib.parse
 import configparser
 
-EXCLUDE_DIRS = {".git", "__pycache__", ".ipynb_checkpoints"}
+EXCLUDE_DIRS = {".git", "__pycache__", ".ipynb_checkpoints", "node_modules"}
 EXCLUDE_FILES = {"README.md"}
 INCLUDE_EXTS = {".md", ".ipynb", ".java", ".kt", ".py"}
 
