@@ -121,7 +121,6 @@
         - [test_booking_service_Царюк_Артём_Владимирович.py](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/services/qa/hw3/test_booking_service_%D0%A6%D0%B0%D1%80%D1%8E%D0%BA_%D0%90%D1%80%D1%82%D1%91%D0%BC_%D0%92%D0%BB%D0%B0%D0%B4%D0%B8%D0%BC%D0%B8%D1%80%D0%BE%D0%B2%D0%B8%D1%87.py)
     - [web](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/services/web)
       - [hw1-tz-lamp-store](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/services/web/hw1-tz-lamp-store)
-        - [ТЗ.md](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/services/web/hw1-tz-lamp-store/%D0%A2%D0%97.md)
         - [microservices](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/services/web/hw1-tz-lamp-store/microservices)
           - [catalog](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/services/web/hw1-tz-lamp-store/microservices/catalog)
             - [database.md](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/services/web/hw1-tz-lamp-store/microservices/catalog/database.md)
