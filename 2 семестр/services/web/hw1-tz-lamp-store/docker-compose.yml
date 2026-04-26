@@ -1,0 +1,66 @@
+services:
+  catalog-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: catalog_db
+      POSTGRES_USER: catalog
+      POSTGRES_PASSWORD: catalog
+    ports:
+      - "5433:5432"
+    volumes:
+      - catalog-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catalog -d catalog_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  order-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: order_db
+      POSTGRES_USER: orders
+      POSTGRES_PASSWORD: orders
+    ports:
+      - "5434:5432"
+    volumes:
+      - order-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orders -d order_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  catalog-service:
+    build:
+      context: ./microservices/catalog
+    environment:
+      DATABASE_URL: postgresql+asyncpg://catalog:catalog@catalog-db:5432/catalog_db
+    ports:
+      - "8001:8000"
+    depends_on:
+      catalog-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  order-service:
+    build:
+      context: ./microservices/order
+    environment:
+      DATABASE_URL: postgresql+asyncpg://orders:orders@order-db:5432/order_db
+      CATALOG_SERVICE_URL: http://catalog-service:8000
+    ports:
+      - "8002:8000"
+    depends_on:
+      order-db:
+        condition: service_healthy
+      catalog-service:
+        condition: service_healthy
+
+volumes:
+  catalog-db-data:
+  order-db-data:

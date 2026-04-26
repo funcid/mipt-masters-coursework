@@ -1,0 +1,239 @@
+{
+  "info": {
+    "name": "Lamp Store - Catalog and Order Services",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "catalog_url",
+      "value": "http://localhost:8001"
+    },
+    {
+      "key": "order_url",
+      "value": "http://localhost:8002"
+    },
+    {
+      "key": "product_id",
+      "value": ""
+    },
+    {
+      "key": "category_id",
+      "value": ""
+    },
+    {
+      "key": "cart_token",
+      "value": ""
+    },
+    {
+      "key": "order_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Catalog health",
+      "request": {
+        "method": "GET",
+        "url": "{{catalog_url}}/health"
+      }
+    },
+    {
+      "name": "Order health",
+      "request": {
+        "method": "GET",
+        "url": "{{order_url}}/health"
+      }
+    },
+    {
+      "name": "List categories",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('categories returned', function () {",
+              "  const categories = pm.response.json();",
+              "  pm.expect(categories.length).to.be.above(0);",
+              "  pm.collectionVariables.set('category_id', categories[0].id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": "{{catalog_url}}/api/v1/categories"
+      }
+    },
+    {
+      "name": "List products and save first product id",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('products returned', function () {",
+              "  const products = pm.response.json();",
+              "  pm.expect(products.length).to.be.above(0);",
+              "  pm.collectionVariables.set('product_id', products[0].id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": "{{catalog_url}}/api/v1/products"
+      }
+    },
+    {
+      "name": "Get product card",
+      "request": {
+        "method": "GET",
+        "url": "{{catalog_url}}/api/v1/products/{{product_id}}"
+      }
+    },
+    {
+      "name": "Create product",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sku\": \"LMP-DEMO-001\",\n  \"name\": \"Демонстрационная лампа 9 Вт E27\",\n  \"description\": \"Товар для проверки CRUD в Postman.\",\n  \"category_id\": \"{{category_id}}\",\n  \"price_cents\": 19900,\n  \"currency\": \"RUB\",\n  \"watt\": 9,\n  \"base_type\": \"E27\",\n  \"color_temp_k\": 4000,\n  \"lifetime_hours\": 25000,\n  \"stock_qty\": 10,\n  \"is_active\": true,\n  \"image_urls\": [\"https://example.com/images/demo-lamp.jpg\"]\n}"
+        },
+        "url": "{{catalog_url}}/api/v1/products"
+      }
+    },
+    {
+      "name": "Create cart and save token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('cart token returned', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.cart_token).to.not.be.empty;",
+              "  pm.collectionVariables.set('cart_token', body.cart_token);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "url": "{{order_url}}/api/v1/carts"
+      }
+    },
+    {
+      "name": "Add item to cart",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-Cart-Token",
+            "value": "{{cart_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"product_id\": \"{{product_id}}\",\n  \"quantity\": 2\n}"
+        },
+        "url": "{{order_url}}/api/v1/cart/items"
+      }
+    },
+    {
+      "name": "Get cart",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Cart-Token",
+            "value": "{{cart_token}}"
+          }
+        ],
+        "url": "{{order_url}}/api/v1/cart"
+      }
+    },
+    {
+      "name": "Checkout and save order id",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('order created', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.status).to.eql('NEW');",
+              "  pm.collectionVariables.set('order_id', body.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-Cart-Token",
+            "value": "{{cart_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customer_name\": \"Иван Петров\",\n  \"customer_email\": \"ivan.petrov@example.com\",\n  \"customer_phone\": \"+79990001122\",\n  \"delivery_address\": \"Москва, ул. Светлая, 1\",\n  \"comment\": \"Позвонить за час до доставки\"\n}"
+        },
+        "url": "{{order_url}}/api/v1/orders/checkout"
+      }
+    },
+    {
+      "name": "Get order",
+      "request": {
+        "method": "GET",
+        "url": "{{order_url}}/api/v1/orders/{{order_id}}"
+      }
+    },
+    {
+      "name": "Confirm order",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"CONFIRMED\"\n}"
+        },
+        "url": "{{order_url}}/api/v1/orders/{{order_id}}/status"
+      }
+    },
+    {
+      "name": "List orders",
+      "request": {
+        "method": "GET",
+        "url": "{{order_url}}/api/v1/orders"
+      }
+    }
+  ]
+}
