@@ -1,14 +1,18 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, Navigate, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { categories, getCategory, Product, products } from './data/products';
-
-type CartState = Record<string, number>;
-
-type CartLine = {
-  product: Product;
-  quantity: number;
-  lineTotal: number;
-};
+import { categoryDescriptions, type Product } from './data/products';
+import { useAppDispatch, useAppSelector } from './store/hooks';
+import {
+  addItemToCart,
+  checkoutCart,
+  clearMutationError,
+  ensureCart,
+  removeCartItem,
+  updateCartItemQuantity,
+} from './store/slices/cartSlice';
+import { fetchOrders, prependOrder } from './store/slices/ordersSlice';
+import { fetchCategories, fetchProductById, fetchProducts } from './store/slices/productsSlice';
+import type { CartLineApi, OrderApi } from './types/orderApi';
 
 type CheckoutForm = {
   name: string;
@@ -18,14 +22,9 @@ type CheckoutForm = {
   comment: string;
 };
 
-type OrderSummary = CheckoutForm & {
-  orderNumber: string;
-  total: number;
-  itemsCount: number;
-};
+const ORDER_STORAGE_PREFIX = 'lamp-store-order-';
 
-const CART_STORAGE_KEY = 'lamp-store-cart';
-const ORDER_STORAGE_KEY = 'lamp-store-last-order';
+let appInitPromise: Promise<void> | null = null;
 
 const formatPrice = (cents: number) =>
   new Intl.NumberFormat('ru-RU', {
@@ -34,76 +33,42 @@ const formatPrice = (cents: number) =>
     maximumFractionDigits: 0,
   }).format(cents / 100);
 
-const loadCart = (): CartState => {
-  try {
-    const rawCart = localStorage.getItem(CART_STORAGE_KEY);
-    return rawCart ? JSON.parse(rawCart) : {};
-  } catch {
-    return {};
-  }
-};
-
-function App() {
-  const [cart, setCart] = useState<CartState>(() => loadCart());
+function AppBootstrap() {
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-  }, [cart]);
+    if (!appInitPromise) {
+      appInitPromise = Promise.all([
+        dispatch(fetchCategories()).unwrap(),
+        dispatch(fetchProducts()).unwrap(),
+        dispatch(ensureCart()).unwrap(),
+      ])
+        .then(() => undefined)
+        .catch(() => {
+          appInitPromise = null;
+        });
+    }
+    void appInitPromise;
+  }, [dispatch]);
 
-  const cartLines = useMemo<CartLine[]>(
-    () =>
-      Object.entries(cart)
-        .map(([productId, quantity]) => {
-          const product = products.find((item) => item.id === productId);
-          return product ? { product, quantity, lineTotal: product.priceCents * quantity } : null;
-        })
-        .filter((line): line is CartLine => Boolean(line)),
-    [cart],
-  );
+  return null;
+}
 
-  const cartTotal = cartLines.reduce((sum, line) => sum + line.lineTotal, 0);
-  const itemsCount = cartLines.reduce((sum, line) => sum + line.quantity, 0);
-
-  const addToCart = (productId: string, quantity = 1) => {
-    setCart((current) => ({
-      ...current,
-      [productId]: (current[productId] ?? 0) + quantity,
-    }));
-  };
-
-  const updateQuantity = (productId: string, quantity: number) => {
-    setCart((current) => {
-      const nextCart = { ...current };
-      if (quantity <= 0) {
-        delete nextCart[productId];
-      } else {
-        nextCart[productId] = quantity;
-      }
-      return nextCart;
-    });
-  };
-
-  const clearCart = () => setCart({});
-
+function App() {
   return (
     <div className="app-shell">
-      <Header itemsCount={itemsCount} />
+      <AppBootstrap />
+      <Header />
+      <GlobalStatusBar />
       <main>
         <Routes>
-          <Route path="/" element={<HomePage onAddToCart={addToCart} />} />
-          <Route path="/catalog" element={<CatalogPage onAddToCart={addToCart} />} />
-          <Route path="/catalog/:productId" element={<ProductPage onAddToCart={addToCart} />} />
-          <Route
-            path="/cart"
-            element={<CartPage cartLines={cartLines} total={cartTotal} onUpdateQuantity={updateQuantity} />}
-          />
-          <Route
-            path="/checkout"
-            element={
-              <CheckoutPage cartLines={cartLines} total={cartTotal} itemsCount={itemsCount} onCheckout={clearCart} />
-            }
-          />
-          <Route path="/confirmation/:orderNumber" element={<ConfirmationPage />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/catalog" element={<CatalogPage />} />
+          <Route path="/catalog/:productId" element={<ProductPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/confirmation/:orderId" element={<ConfirmationPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
@@ -112,7 +77,47 @@ function App() {
   );
 }
 
-function Header({ itemsCount }: { itemsCount: number }) {
+function GlobalStatusBar() {
+  const dispatch = useAppDispatch();
+  const productsError = useAppSelector((s) => s.products.error);
+  const listStatus = useAppSelector((s) => s.products.listStatus);
+  const bootstrapStatus = useAppSelector((s) => s.cart.bootstrapStatus);
+  const mutationError = useAppSelector((s) => s.cart.mutationError);
+
+  const fatal: string[] = [];
+  if (listStatus === 'failed') {
+    fatal.push(productsError ?? 'Не удалось загрузить каталог');
+  }
+  if (bootstrapStatus === 'failed') {
+    fatal.push(mutationError ?? 'Не удалось подключить корзину');
+  }
+
+  const transient = mutationError && bootstrapStatus !== 'failed' ? mutationError : null;
+
+  if (!fatal.length && !transient) {
+    return null;
+  }
+
+  return (
+    <div className="global-banner" role="status">
+      {fatal.map((message) => (
+        <p key={message}>{message}</p>
+      ))}
+      {transient && (
+        <p>
+          {transient}{' '}
+          <button type="button" className="text-button" onClick={() => dispatch(clearMutationError())}>
+            Закрыть
+          </button>
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Header() {
+  const itemsCount = useAppSelector((s) => s.cart.cart?.lines.reduce((sum, line) => sum + line.quantity, 0) ?? 0);
+
   return (
     <header className="site-header">
       <Link to="/" className="brand" aria-label="На главную">
@@ -126,6 +131,7 @@ function Header({ itemsCount }: { itemsCount: number }) {
       <nav className="main-nav" aria-label="Основная навигация">
         <NavItem to="/">Главная</NavItem>
         <NavItem to="/catalog">Каталог</NavItem>
+        <NavItem to="/orders">Заказы</NavItem>
         <NavLink to="/cart" className={({ isActive }) => `cart-link ${isActive ? 'active' : ''}`}>
           Корзина
           <span>{itemsCount}</span>
@@ -143,8 +149,24 @@ function NavItem({ to, children }: { to: string; children: ReactNode }) {
   );
 }
 
-function HomePage({ onAddToCart }: { onAddToCart: (productId: string) => void }) {
-  const featuredProducts = products.filter((product) => product.badge).slice(0, 4);
+function HomePage() {
+  const dispatch = useAppDispatch();
+  const categories = useAppSelector((s) => s.products.categories);
+  const productsList = useAppSelector((s) => s.products.items);
+  const listStatus = useAppSelector((s) => s.products.listStatus);
+
+  const featuredProducts = useMemo(() => {
+    const withBadges = productsList.filter((product) => product.badge);
+    return (withBadges.length > 0 ? withBadges : productsList).slice(0, 4);
+  }, [productsList]);
+
+  const handleAdd = (productId: string) => {
+    void dispatch(addItemToCart({ productId, quantity: 1 }));
+  };
+
+  if (listStatus === 'loading' || listStatus === 'idle') {
+    return <PageLoading text="Загружаем каталог…" />;
+  }
 
   return (
     <>
@@ -153,8 +175,8 @@ function HomePage({ onAddToCart }: { onAddToCart: (productId: string) => void })
           <p className="eyebrow">Интернет-магазин завода лампочек</p>
           <h1>Подберите освещение для дома, офиса и производства</h1>
           <p>
-            Каталог с фильтрами, карточки товаров, корзина и оформление заказа реализованы на React Router DOM и
-            работают на mock-данных.
+            Каталог, корзина и оформление заказа работают через микросервисы каталога и заказов: данные приходят с
+            backend, состояние хранится в Redux, запросы выполняются через fetch.
           </p>
           <div className="hero-actions">
             <Link to="/catalog" className="button button-primary">
@@ -167,8 +189,8 @@ function HomePage({ onAddToCart }: { onAddToCart: (productId: string) => void })
         </div>
         <div className="hero-card" aria-label="Преимущества магазина">
           <span className="bulb-icon">●</span>
-          <strong>20 товаров</strong>
-          <p>5 категорий, понятные характеристики, быстрый заказ без регистрации.</p>
+          <strong>Живой каталог</strong>
+          <p>Категории и товары с catalog-service, корзина и заказы с order-service.</p>
         </div>
       </section>
 
@@ -181,7 +203,7 @@ function HomePage({ onAddToCart }: { onAddToCart: (productId: string) => void })
           {categories.map((category) => (
             <Link key={category.slug} to={`/catalog?category=${category.slug}`} className="category-card">
               <strong>{category.name}</strong>
-              <span>{category.description}</span>
+              <span>{categoryDescriptions[category.slug] ?? 'Категория каталога.'}</span>
             </Link>
           ))}
         </div>
@@ -195,18 +217,22 @@ function HomePage({ onAddToCart }: { onAddToCart: (productId: string) => void })
           </div>
           <Link to="/catalog">Все товары</Link>
         </div>
-        <ProductGrid productsList={featuredProducts} onAddToCart={onAddToCart} />
+        <ProductGrid productsList={featuredProducts} onAddToCart={handleAdd} />
       </section>
     </>
   );
 }
 
-function CatalogPage({ onAddToCart }: { onAddToCart: (productId: string) => void }) {
+function CatalogPage() {
+  const dispatch = useAppDispatch();
+  const productsList = useAppSelector((s) => s.products.items);
+  const categories = useAppSelector((s) => s.products.categories);
+  const listStatus = useAppSelector((s) => s.products.listStatus);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeCategory = searchParams.get('category') ?? 'all';
   const query = searchParams.get('q') ?? '';
 
-  const filteredProducts = products.filter((product) => {
+  const filteredProducts = productsList.filter((product) => {
     const matchesCategory = activeCategory === 'all' || product.category === activeCategory;
     const matchesQuery = `${product.name} ${product.sku}`.toLowerCase().includes(query.toLowerCase());
     return matchesCategory && matchesQuery;
@@ -222,6 +248,14 @@ function CatalogPage({ onAddToCart }: { onAddToCart: (productId: string) => void
     setSearchParams(nextParams);
   };
 
+  const handleAdd = (productId: string) => {
+    void dispatch(addItemToCart({ productId, quantity: 1 }));
+  };
+
+  if (listStatus === 'loading' || listStatus === 'idle') {
+    return <PageLoading text="Загружаем товары…" />;
+  }
+
   return (
     <section className="page-section">
       <div className="page-title">
@@ -233,12 +267,13 @@ function CatalogPage({ onAddToCart }: { onAddToCart: (productId: string) => void
       <div className="catalog-layout">
         <aside className="filters" aria-label="Фильтры каталога">
           <h2>Категории</h2>
-          <button className={activeCategory === 'all' ? 'selected' : ''} onClick={() => setCategory('all')}>
+          <button type="button" className={activeCategory === 'all' ? 'selected' : ''} onClick={() => setCategory('all')}>
             Все товары
           </button>
           {categories.map((category) => (
             <button
               key={category.slug}
+              type="button"
               className={activeCategory === category.slug ? 'selected' : ''}
               onClick={() => setCategory(category.slug)}
             >
@@ -270,7 +305,7 @@ function CatalogPage({ onAddToCart }: { onAddToCart: (productId: string) => void
           </div>
 
           {filteredProducts.length > 0 ? (
-            <ProductGrid productsList={filteredProducts} onAddToCart={onAddToCart} />
+            <ProductGrid productsList={filteredProducts} onAddToCart={handleAdd} />
           ) : (
             <EmptyState title="Ничего не найдено" text="Попробуйте изменить категорию или поисковый запрос." />
           )}
@@ -280,16 +315,33 @@ function CatalogPage({ onAddToCart }: { onAddToCart: (productId: string) => void
   );
 }
 
-function ProductPage({ onAddToCart }: { onAddToCart: (productId: string, quantity?: number) => void }) {
+function ProductPage() {
+  const dispatch = useAppDispatch();
   const { productId } = useParams();
   const [quantity, setQuantity] = useState(1);
-  const product = products.find((item) => item.id === productId);
+  const categories = useAppSelector((s) => s.products.categories);
+  const product = useAppSelector((s) => (productId ? s.products.byId[productId] : undefined));
+  const detailStatus = useAppSelector((s) => s.products.detailStatus);
+
+  useEffect(() => {
+    if (productId) {
+      void dispatch(fetchProductById(productId));
+    }
+  }, [dispatch, productId]);
+
+  if (!productId) {
+    return <Navigate to="/catalog" replace />;
+  }
+
+  if (detailStatus === 'loading' || (detailStatus === 'idle' && !product)) {
+    return <PageLoading text="Загружаем карточку товара…" />;
+  }
 
   if (!product) {
     return <Navigate to="/catalog" replace />;
   }
 
-  const category = getCategory(product.category);
+  const category = categories.find((item) => item.slug === product.category);
 
   return (
     <section className="page-section product-page">
@@ -338,13 +390,17 @@ function ProductPage({ onAddToCart }: { onAddToCart: (productId: string, quantit
             Количество
             <input
               type="number"
-              min="1"
+              min={1}
               max={product.stockQty}
               value={quantity}
               onChange={(event) => setQuantity(Math.max(1, Number(event.target.value)))}
             />
           </label>
-          <button className="button button-primary" onClick={() => onAddToCart(product.id, quantity)}>
+          <button
+            type="button"
+            className="button button-primary"
+            onClick={() => void dispatch(addItemToCart({ productId: product.id, quantity }))}
+          >
             Добавить в корзину
           </button>
         </div>
@@ -353,22 +409,55 @@ function ProductPage({ onAddToCart }: { onAddToCart: (productId: string, quantit
   );
 }
 
-function CartPage({
-  cartLines,
-  total,
-  onUpdateQuantity,
-}: {
-  cartLines: CartLine[];
-  total: number;
-  onUpdateQuantity: (productId: string, quantity: number) => void;
-}) {
-  if (cartLines.length === 0) {
+function resolveLineProduct(line: CartLineApi, catalogProduct?: Product): Product {
+  if (catalogProduct) {
+    return catalogProduct;
+  }
+  return {
+    id: line.product_id,
+    sku: line.product_snapshot.sku,
+    name: line.product_snapshot.name,
+    description: line.product_snapshot.name,
+    category: 'led',
+    priceCents: line.product_snapshot.price_cents,
+    watt: 0,
+    lifetimeHours: 0,
+    stockQty: 999,
+  };
+}
+
+function CartPage() {
+  const dispatch = useAppDispatch();
+  const cart = useAppSelector((s) => s.cart.cart);
+  const byId = useAppSelector((s) => s.products.byId);
+  const bootstrapStatus = useAppSelector((s) => s.cart.bootstrapStatus);
+
+  const cartLines = useMemo(() => {
+    const lines = cart?.lines ?? [];
+    return lines.map((line) => {
+      const product = resolveLineProduct(line, byId[line.product_id]);
+      const lineTotal = line.line_total_cents;
+      return { product, quantity: line.quantity, lineTotal, productId: line.product_id };
+    });
+  }, [cart, byId]);
+
+  const total = cart?.total_cents ?? 0;
+
+  if (bootstrapStatus === 'loading' || bootstrapStatus === 'idle') {
+    return <PageLoading text="Синхронизируем корзину…" />;
+  }
+
+  if (!cartLines.length) {
     return (
       <section className="page-section">
         <EmptyState
           title="Корзина пуста"
           text="Добавьте товары из каталога, чтобы перейти к оформлению заказа."
-          action={<Link to="/catalog" className="button button-primary">В каталог</Link>}
+          action={
+            <Link to="/catalog" className="button button-primary">
+              В каталог
+            </Link>
+          }
         />
       </section>
     );
@@ -383,8 +472,8 @@ function CartPage({
 
       <div className="cart-layout">
         <div className="cart-list">
-          {cartLines.map(({ product, quantity, lineTotal }) => (
-            <article key={product.id} className="cart-item">
+          {cartLines.map(({ product, quantity, lineTotal, productId }) => (
+            <article key={productId} className="cart-item">
               <div className="product-visual small">
                 <span>{product.baseType ?? 'LED'}</span>
               </div>
@@ -395,13 +484,15 @@ function CartPage({
               <input
                 aria-label={`Количество: ${product.name}`}
                 type="number"
-                min="1"
+                min={1}
                 max={product.stockQty}
                 value={quantity}
-                onChange={(event) => onUpdateQuantity(product.id, Number(event.target.value))}
+                onChange={(event) =>
+                  void dispatch(updateCartItemQuantity({ productId, quantity: Number(event.target.value) }))
+                }
               />
               <strong>{formatPrice(lineTotal)}</strong>
-              <button className="text-button" onClick={() => onUpdateQuantity(product.id, 0)}>
+              <button type="button" className="text-button" onClick={() => void dispatch(removeCartItem(productId))}>
                 Удалить
               </button>
             </article>
@@ -421,18 +512,11 @@ function CartPage({
   );
 }
 
-function CheckoutPage({
-  cartLines,
-  total,
-  itemsCount,
-  onCheckout,
-}: {
-  cartLines: CartLine[];
-  total: number;
-  itemsCount: number;
-  onCheckout: () => void;
-}) {
+function CheckoutPage() {
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const cart = useAppSelector((s) => s.cart.cart);
+  const byId = useAppSelector((s) => s.products.byId);
   const [form, setForm] = useState<CheckoutForm>({
     name: '',
     email: '',
@@ -441,17 +525,39 @@ function CheckoutPage({
     comment: '',
   });
 
-  if (cartLines.length === 0) {
+  const cartLines = useMemo(() => {
+    const lines = cart?.lines ?? [];
+    return lines.map((line) => {
+      const product = resolveLineProduct(line, byId[line.product_id]);
+      return { product, quantity: line.quantity };
+    });
+  }, [cart, byId]);
+
+  const total = cart?.total_cents ?? 0;
+  const itemsCount = cart?.lines.reduce((sum, line) => sum + line.quantity, 0) ?? 0;
+
+  if (!cartLines.length) {
     return <Navigate to="/cart" replace />;
   }
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    const orderNumber = `LS-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
-    const order: OrderSummary = { ...form, orderNumber, total, itemsCount };
-    sessionStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(order));
-    onCheckout();
-    navigate(`/confirmation/${orderNumber}`);
+    try {
+      const order = await dispatch(
+        checkoutCart({
+          customer_name: form.name,
+          customer_email: form.email,
+          customer_phone: form.phone,
+          delivery_address: form.address,
+          comment: form.comment.trim() ? form.comment : undefined,
+        }),
+      ).unwrap();
+      dispatch(prependOrder(order));
+      sessionStorage.setItem(`${ORDER_STORAGE_PREFIX}${order.id}`, JSON.stringify(order));
+      navigate(`/confirmation/${order.id}`);
+    } catch {
+      /* ошибка уже в mutationError */
+    }
   };
 
   return (
@@ -462,7 +568,7 @@ function CheckoutPage({
       </div>
 
       <div className="checkout-layout">
-        <form className="checkout-form" onSubmit={handleSubmit}>
+        <form className="checkout-form" onSubmit={(e) => void handleSubmit(e)}>
           <Field label="Имя и фамилия">
             <input
               required
@@ -530,9 +636,9 @@ function CheckoutPage({
 }
 
 function ConfirmationPage() {
-  const { orderNumber } = useParams();
-  const rawOrder = sessionStorage.getItem(ORDER_STORAGE_KEY);
-  const order: OrderSummary | null = rawOrder ? JSON.parse(rawOrder) : null;
+  const { orderId } = useParams();
+  const rawOrder = orderId ? sessionStorage.getItem(`${ORDER_STORAGE_PREFIX}${orderId}`) : null;
+  const order: OrderApi | null = rawOrder ? (JSON.parse(rawOrder) as OrderApi) : null;
 
   return (
     <section className="page-section">
@@ -541,15 +647,16 @@ function ConfirmationPage() {
         <p className="eyebrow">Заказ оформлен</p>
         <h1>Спасибо за покупку!</h1>
         <p>
-          Заказ <strong>{order?.orderNumber ?? orderNumber}</strong> принят в обработку. Менеджер свяжется с вами для
+          Заказ <strong>{order?.order_number ?? orderId}</strong> принят в обработку. Менеджер свяжется с вами для
           подтверждения доставки.
         </p>
         {order && (
           <div className="confirmation-details">
-            <span>Получатель: {order.name}</span>
-            <span>Email: {order.email}</span>
-            <span>Телефон: {order.phone}</span>
-            <span>Сумма: {formatPrice(order.total)}</span>
+            <span>Получатель: {order.customer_name}</span>
+            <span>Email: {order.customer_email}</span>
+            <span>Телефон: {order.customer_phone}</span>
+            <span>Сумма: {formatPrice(order.total_cents)}</span>
+            <span>Статус: {order.status}</span>
           </div>
         )}
         <Link to="/catalog" className="button button-primary">
@@ -560,10 +667,83 @@ function ConfirmationPage() {
   );
 }
 
+function OrdersPage() {
+  const dispatch = useAppDispatch();
+  const orders = useAppSelector((s) => s.orders.items);
+  const listStatus = useAppSelector((s) => s.orders.listStatus);
+  const listError = useAppSelector((s) => s.orders.error);
+
+  useEffect(() => {
+    void dispatch(fetchOrders());
+  }, [dispatch]);
+
+  if (listStatus === 'loading' || listStatus === 'idle') {
+    return <PageLoading text="Загружаем заказы…" />;
+  }
+
+  if (listStatus === 'failed') {
+    return (
+      <section className="page-section">
+        <EmptyState title="Не удалось загрузить заказы" text={listError ?? 'Проверьте, что order-service запущен.'} />
+      </section>
+    );
+  }
+
+  if (!orders.length) {
+    return (
+      <section className="page-section">
+        <EmptyState
+          title="Заказов пока нет"
+          text="Оформите первый заказ из корзины — он появится в этом списке."
+          action={
+            <Link to="/catalog" className="button button-primary">
+              В каталог
+            </Link>
+          }
+        />
+      </section>
+    );
+  }
+
+  return (
+    <section className="page-section">
+      <div className="page-title compact">
+        <p className="eyebrow">История</p>
+        <h1>Заказы</h1>
+      </div>
+      <div className="cart-list">
+        {orders.map((order) => (
+          <article key={order.id} className="cart-item">
+            <div>
+              <strong>{order.order_number}</strong>
+              <span>
+                {order.status} · {new Date(order.created_at).toLocaleString('ru-RU')}
+              </span>
+            </div>
+            <div>
+              <span>{order.customer_name}</span>
+              <span>{order.customer_email}</span>
+            </div>
+            <strong>{formatPrice(order.total_cents)}</strong>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function NotFoundPage() {
   return (
     <section className="page-section">
-      <EmptyState title="Страница не найдена" text="Проверьте адрес или вернитесь в каталог." action={<Link to="/catalog" className="button button-primary">В каталог</Link>} />
+      <EmptyState
+        title="Страница не найдена"
+        text="Проверьте адрес или вернитесь в каталог."
+        action={
+          <Link to="/catalog" className="button button-primary">
+            В каталог
+          </Link>
+        }
+      />
     </section>
   );
 }
@@ -593,7 +773,7 @@ function ProductGrid({
             </p>
             <div className="product-card-footer">
               <strong>{formatPrice(product.priceCents)}</strong>
-              <button className="button button-small" onClick={() => onAddToCart(product.id)}>
+              <button type="button" className="button button-small" onClick={() => onAddToCart(product.id)}>
                 В корзину
               </button>
             </div>
@@ -644,11 +824,21 @@ function EmptyState({ title, text, action }: { title: string; text: string; acti
   );
 }
 
+function PageLoading({ text }: { text: string }) {
+  return (
+    <section className="page-section">
+      <div className="empty-state">
+        <h1>{text}</h1>
+      </div>
+    </section>
+  );
+}
+
 function Footer() {
   return (
     <footer className="site-footer">
       <span>Lamp Store, учебный проект</span>
-      <span>React + React Router DOM · mock-данные</span>
+      <span>React + Redux Toolkit + fetch · catalog-service + order-service</span>
     </footer>
   );
 }

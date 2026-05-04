@@ -772,3 +772,20 @@ main {
     min-height: 320px;
   }
 }
+
+.global-banner {
+  margin: 0 24px 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #fff4e5;
+  border: 1px solid #f0c987;
+  color: #5a3a12;
+}
+
+.global-banner p {
+  margin: 0 0 8px;
+}
+
+.global-banner p:last-child {
+  margin-bottom: 0;
+}
