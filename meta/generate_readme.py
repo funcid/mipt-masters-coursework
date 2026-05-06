@@ -62,7 +62,7 @@ def count_files(dir_path: str) -> int:
     return file_count
 
 def services_projects(dir_path: str, level: int) -> list[str]:
-    """Для services показывает только проекты первого уровня и число файлов."""
+    """Для services — только проекты первого уровня; сабмодули как в tree(), иначе (N files)."""
     projects = []
     entries = [
         e for e in os.listdir(dir_path)
@@ -74,9 +74,17 @@ def services_projects(dir_path: str, level: int) -> list[str]:
             continue
         rel_path = os.path.relpath(path, ".").replace("\\", "/")
         link = f"[{entry}]({urllib.parse.quote(rel_path)})"
-        files_count = count_files(path)
         indent = "  " * level
-        projects.append(f"{indent}- {link} ({files_count} files)")
+        is_sub = is_submodule(path) or rel_path in submodules
+        sub_url = submodules.get(rel_path, None)
+        if is_sub:
+            if sub_url:
+                projects.append(f"{indent}- {link} 🔗 [submodule]({sub_url})")
+            else:
+                projects.append(f"{indent}- {link} 🔗 [submodule]")
+        else:
+            files_count = count_files(path)
+            projects.append(f"{indent}- {link} ({files_count} files)")
     return projects
 
 def tree(dir_path: str, level: int = 0) -> list[str]:
