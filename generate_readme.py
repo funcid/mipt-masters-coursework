@@ -49,6 +49,36 @@ def is_submodule(dir_path: str) -> bool:
 
 submodules = load_submodules()
 
+def count_files(dir_path: str) -> int:
+    """Считает количество файлов в директории рекурсивно."""
+    file_count = 0
+    for root, dirs, files in os.walk(dir_path):
+        dirs[:] = [
+            d
+            for d in dirs
+            if not d.startswith(".") and d not in EXCLUDE_DIRS
+        ]
+        file_count += sum(1 for f in files if not f.startswith("."))
+    return file_count
+
+def services_projects(dir_path: str, level: int) -> list[str]:
+    """Для services показывает только проекты первого уровня и число файлов."""
+    projects = []
+    entries = [
+        e for e in os.listdir(dir_path)
+        if not e.startswith(".") and e not in EXCLUDE_DIRS
+    ]
+    for entry in sorted(entries, key=str.lower):
+        path = os.path.join(dir_path, entry)
+        if not os.path.isdir(path):
+            continue
+        rel_path = os.path.relpath(path, ".").replace("\\", "/")
+        link = f"[{entry}]({urllib.parse.quote(rel_path)})"
+        files_count = count_files(path)
+        indent = "  " * level
+        projects.append(f"{indent}- {link} ({files_count} files)")
+    return projects
+
 def tree(dir_path: str, level: int = 0) -> list[str]:
     entries = [e for e in os.listdir(dir_path) if not e.startswith(".")]
     entries = [e for e in entries if e not in EXCLUDE_DIRS]
@@ -60,6 +90,13 @@ def tree(dir_path: str, level: int = 0) -> list[str]:
         rel_path = os.path.relpath(path, ".").replace("\\", "/")
 
         if os.path.isdir(path):
+            if entry.lower() == "services":
+                indent = "  " * level
+                link = f"[{entry}]({urllib.parse.quote(rel_path)})"
+                lines.append(f"{indent}- {link}")
+                lines.extend(services_projects(path, level + 1))
+                continue
+
             # Проверяем, является ли это submodule'ом
             is_sub = is_submodule(path) or rel_path in submodules
             sub_url = submodules.get(rel_path, None)
