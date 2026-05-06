@@ -4,7 +4,7 @@ import configparser
 
 EXCLUDE_DIRS = {".git", "__pycache__", ".ipynb_checkpoints", "node_modules"}
 EXCLUDE_FILES = {"README.md"}
-INCLUDE_EXTS = {".md", ".ipynb", ".java", ".kt", ".py"}
+INCLUDE_EXTS = {".md", ".ipynb", ".java", ".kt", ".py", ".pptx"}
 
 def load_submodules() -> dict[str, str]:
     """Загружает информацию о submodule'ах из .gitmodules"""
