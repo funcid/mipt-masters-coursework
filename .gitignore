@@ -25,4 +25,4 @@ coverage.xml
 .ruff_cache/
 
 # Sensitive interview transcripts (custdev)
-2 семестр/services/custdev/*.txt
+2 семестр/notebooks/startup/custdev/*.txt
