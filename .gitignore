@@ -24,5 +24,11 @@ coverage.xml
 .mypy_cache/
 .ruff_cache/
 
+# Excel spreadsheets
+*.xlsx
+*.xls
+*.xlsm
+*.xlsb
+
 # Sensitive interview transcripts (custdev)
 2 semester/notebooks/startup/custdev/*.txt
