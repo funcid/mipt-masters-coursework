@@ -43,6 +43,7 @@
   - [services](1%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/services)
     - [calculator](1%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/services/calculator) (4 files)
     - [delivery_network_optimization](1%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/services/delivery_network_optimization) (10 files)
+    - [dispute-mcp-processing](1%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/services/dispute-mcp-processing) (19 files)
     - [financial_tracker](1%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/services/financial_tracker) (2 files)
     - [funcfund](1%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80/services/funcfund) (529 files)
 - [2 семестр](2%20%D1%81%D0%B5%D0%BC%D0%B5%D1%81%D1%82%D1%80)

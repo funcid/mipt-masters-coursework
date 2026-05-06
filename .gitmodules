@@ -1,6 +1,6 @@
 [submodule "1 семестр/services/financial_tracker"]
 	path = 1 семестр/services/financial_tracker
-	url = https://github.com/BHEMBD-25-PP-1/financial_tracker
+	url = https://github.com/BHEMBD-25-PP-1/financial-tracker
 [submodule "1 семестр/services/funcfund"]
 	path = 1 семестр/services/funcfund
 	url = https://github.com/funcid/funcfund
@@ -10,3 +10,6 @@
 [submodule "2 семестр/services/arch/mipt-arch-2026-hw6"]
 	path = 2 семестр/services/arch/mipt-arch-2026-hw6
 	url = https://github.com/funcid/mipt-arch-2026-hw6
+[submodule "1 семестр/services/dispute-mcp-processing"]
+	path = 1 семестр/services/dispute-mcp-processing
+	url = https://github.com/BHEMBD-25-PP-1/dispute-mcp-processing
