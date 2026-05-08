@@ -1,4 +1,4 @@
-# Домашнее задание 2: микросервисы товаров и заказов
+# Домашнее задание 5: панель управления в микросервисной архитектуре
 
 Реализация интернет-магазина завода лампочек по ТЗ из `ТЗ.md`.
 
@@ -7,6 +7,8 @@
 - `frontend` — пользовательская часть интернет-магазина на React, React Router DOM и mock-данных.
 - `catalog-service` — товары, категории, изображения, сиды 20 товаров.
 - `order-service` — корзина по `X-Cart-Token`, оформление заказа, просмотр и смена статусов.
+- `auth-service` — вход по email/паролю и выдача JWT.
+- `admin-panel` — веб-панель администратора (вход, товары, заказы, смена статусов, выход).
 - `catalog_db` и `order_db` — отдельные PostgreSQL БД.
 - `postman_collection.json` — сценарий демонстрации в Postman.
 
@@ -31,16 +33,22 @@ docker compose up --build
 
 - Catalog API: `http://localhost:8001/docs`
 - Order API: `http://localhost:8002/docs`
+- Auth API: `http://localhost:8005/docs`
+- Admin panel: `http://localhost:8100`
 - Catalog health: `http://localhost:8001/health`
 - Order health: `http://localhost:8002/health`
 
 ## Основные сценарии
 
-1. Получить список товаров: `GET /api/v1/products`.
+1. Войти в админ-панель (`admin@example.com` / `Admin123!`) и получить JWT.
+2. Получить список товаров: `GET /api/v1/products` c `Authorization: Bearer <token>`.
 2. Создать корзину: `POST /api/v1/carts`.
 3. Передавать полученный UUID в `X-Cart-Token`.
 4. Добавить товар: `POST /api/v1/cart/items`.
-5. Оформить заказ: `POST /api/v1/orders/checkout`.
-6. Сменить статус заказа: `PATCH /api/v1/orders/{order_id}/status`.
+5. Оформить заказ: `POST /api/v1/orders/checkout` c JWT.
+6. Сменить статус заказа: `PATCH /api/v1/orders/{order_id}/status` c JWT.
 
-Аутентификация намеренно не добавлена: по условию ДЗ2 операции панели управления выполняются без авторизации.
+Для критериев ДЗ5 защищены JWT:
+
+- все операции с товарами (`/api/v1/products...`);
+- операции с заказами (`/api/v1/orders...`).

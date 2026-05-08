@@ -1,9 +1,13 @@
 import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+import os
 
+import jwt
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
+from jwt import ExpiredSignatureError, InvalidSignatureError, PyJWTError
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -30,6 +34,8 @@ ALLOWED_STATUS_TRANSITIONS = {
     OrderStatus.DELIVERED: set(),
     OrderStatus.CANCELLED: set(),
 }
+JWT_SECRET = os.getenv("JWT_SECRET", "super-secret-key")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 
 def error_response(code: str, message: str, status_code: int) -> JSONResponse:
@@ -43,6 +49,32 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="Order Service", version="1.0.0", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8100"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+def require_jwt(authorization: str | None = Header(default=None)) -> int:
+    if not authorization:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Токен отсутствует")
+    parts = authorization.split(" ", maxsplit=1)
+    if len(parts) != 2 or parts[0] != "Bearer":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Некорректный заголовок авторизации")
+    token = parts[1]
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Токен истек")
+    except (InvalidSignatureError, PyJWTError):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Некорректный токен")
+    user_id = payload.get("user_id")
+    if not isinstance(user_id, int):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Некорректный payload токена")
+    return user_id
 
 
 @app.exception_handler(HTTPException)
@@ -181,6 +213,7 @@ async def next_order_number(session: AsyncSession) -> str:
 @app.post("/api/v1/orders/checkout", response_model=OrderRead, status_code=status.HTTP_201_CREATED)
 async def checkout(
     payload: CheckoutRequest,
+    _: int = Depends(require_jwt),
     token: uuid.UUID = Depends(cart_token_header),
     session: AsyncSession = Depends(get_session),
 ) -> CustomerOrder:
@@ -235,6 +268,7 @@ async def get_order_or_404(order_id: uuid.UUID, session: AsyncSession) -> Custom
 @app.get("/api/v1/orders", response_model=list[OrderRead])
 async def list_orders(
     status_filter: OrderStatus | None = None,
+    _: int = Depends(require_jwt),
     session: AsyncSession = Depends(get_session),
 ) -> list[CustomerOrder]:
     query = order_query().order_by(CustomerOrder.created_at.desc())
@@ -245,7 +279,11 @@ async def list_orders(
 
 
 @app.get("/api/v1/orders/{order_id}", response_model=OrderRead)
-async def get_order(order_id: uuid.UUID, session: AsyncSession = Depends(get_session)) -> CustomerOrder:
+async def get_order(
+    order_id: uuid.UUID,
+    _: int = Depends(require_jwt),
+    session: AsyncSession = Depends(get_session),
+) -> CustomerOrder:
     return await get_order_or_404(order_id, session)
 
 
@@ -253,6 +291,7 @@ async def get_order(order_id: uuid.UUID, session: AsyncSession = Depends(get_ses
 async def update_order_status(
     order_id: uuid.UUID,
     payload: OrderStatusUpdate,
+    _: int = Depends(require_jwt),
     session: AsyncSession = Depends(get_session),
 ) -> CustomerOrder:
     order = await get_order_or_404(order_id, session)

@@ -1,8 +1,12 @@
 import uuid
 from contextlib import asynccontextmanager
+import os
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
+import jwt
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
+from jwt import ExpiredSignatureError, InvalidSignatureError, PyJWTError
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +16,10 @@ from app.db import SessionLocal, get_session, init_db
 from app.models import Category, Product, ProductImage
 from app.schemas import CategoryCreate, CategoryRead, ProductCreate, ProductRead, ProductUpdate
 from app.seed import seed_catalog
+
+JWT_SECRET = os.getenv("JWT_SECRET", "super-secret-key")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+INTERNAL_SERVICE_TOKEN = os.getenv("INTERNAL_SERVICE_TOKEN", "internal-service-token")
 
 
 def error_response(code: str, message: str, status_code: int) -> JSONResponse:
@@ -27,6 +35,37 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="Catalog Service", version="1.0.0", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8100"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+def require_jwt(
+    authorization: str | None = Header(default=None),
+    x_internal_service_token: str | None = Header(default=None, alias="X-Internal-Service-Token"),
+) -> int:
+    if x_internal_service_token and x_internal_service_token == INTERNAL_SERVICE_TOKEN:
+        return 0
+    if not authorization:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Токен отсутствует")
+    parts = authorization.split(" ", maxsplit=1)
+    if len(parts) != 2 or parts[0] != "Bearer":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Некорректный заголовок авторизации")
+    token = parts[1]
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Токен истек")
+    except (InvalidSignatureError, PyJWTError):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Некорректный токен")
+    user_id = payload.get("user_id")
+    if not isinstance(user_id, int):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Некорректный payload токена")
+    return user_id
 
 
 @app.exception_handler(HTTPException)
@@ -70,6 +109,7 @@ async def list_products(
     base_type: str | None = None,
     active_only: bool = True,
     q: str | None = Query(default=None, min_length=2),
+    _: int = Depends(require_jwt),
     session: AsyncSession = Depends(get_session),
 ) -> list[Product]:
     query = product_query().join(Product.category)
@@ -94,12 +134,20 @@ async def get_product_or_404(product_id: uuid.UUID, session: AsyncSession) -> Pr
 
 
 @app.get("/api/v1/products/{product_id}", response_model=ProductRead)
-async def get_product(product_id: uuid.UUID, session: AsyncSession = Depends(get_session)) -> Product:
+async def get_product(
+    product_id: uuid.UUID,
+    _: int = Depends(require_jwt),
+    session: AsyncSession = Depends(get_session),
+) -> Product:
     return await get_product_or_404(product_id, session)
 
 
 @app.post("/api/v1/products", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
-async def create_product(payload: ProductCreate, session: AsyncSession = Depends(get_session)) -> Product:
+async def create_product(
+    payload: ProductCreate,
+    _: int = Depends(require_jwt),
+    session: AsyncSession = Depends(get_session),
+) -> Product:
     image_urls = payload.image_urls
     product = Product(**payload.model_dump(exclude={"image_urls"}))
     product.images = [ProductImage(url=url, sort_order=index) for index, url in enumerate(image_urls)]
@@ -112,6 +160,7 @@ async def create_product(payload: ProductCreate, session: AsyncSession = Depends
 async def replace_product(
     product_id: uuid.UUID,
     payload: ProductCreate,
+    _: int = Depends(require_jwt),
     session: AsyncSession = Depends(get_session),
 ) -> Product:
     product = await get_product_or_404(product_id, session)
@@ -126,6 +175,7 @@ async def replace_product(
 async def update_product(
     product_id: uuid.UUID,
     payload: ProductUpdate,
+    _: int = Depends(require_jwt),
     session: AsyncSession = Depends(get_session),
 ) -> Product:
     product = await get_product_or_404(product_id, session)
@@ -140,7 +190,11 @@ async def update_product(
 
 
 @app.delete("/api/v1/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def deactivate_product(product_id: uuid.UUID, session: AsyncSession = Depends(get_session)) -> Response:
+async def deactivate_product(
+    product_id: uuid.UUID,
+    _: int = Depends(require_jwt),
+    session: AsyncSession = Depends(get_session),
+) -> Response:
     product = await get_product_or_404(product_id, session)
     product.is_active = False
     await session.commit()

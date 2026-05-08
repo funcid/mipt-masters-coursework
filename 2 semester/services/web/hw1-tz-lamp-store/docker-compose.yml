@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: catalog
       POSTGRES_PASSWORD: catalog
     ports:
-      - "5433:5432"
+      - "5543:5432"
     volumes:
       - catalog-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
       POSTGRES_USER: orders
       POSTGRES_PASSWORD: orders
     ports:
-      - "5434:5432"
+      - "5544:5432"
     volumes:
       - order-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -36,6 +36,9 @@ services:
       context: ./microservices/catalog
     environment:
       DATABASE_URL: postgresql+asyncpg://catalog:catalog@catalog-db:5432/catalog_db
+      JWT_SECRET: super-secret-key
+      JWT_ALGORITHM: HS256
+      INTERNAL_SERVICE_TOKEN: internal-service-token
     ports:
       - "8001:8000"
     depends_on:
@@ -53,6 +56,9 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://orders:orders@order-db:5432/order_db
       CATALOG_SERVICE_URL: http://catalog-service:8000
+      JWT_SECRET: super-secret-key
+      JWT_ALGORITHM: HS256
+      INTERNAL_SERVICE_TOKEN: internal-service-token
     ports:
       - "8002:8000"
     depends_on:
@@ -60,6 +66,31 @@ services:
         condition: service_healthy
       catalog-service:
         condition: service_healthy
+
+  auth-service:
+    build:
+      context: ./microservices/auth
+    environment:
+      JWT_SECRET: super-secret-key
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRE_MINUTES: "120"
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: Admin123!
+    ports:
+      - "8005:8000"
+
+  admin-panel:
+    build:
+      context: ./microservices/admin-panel
+    ports:
+      - "8100:8000"
+    depends_on:
+      auth-service:
+        condition: service_started
+      catalog-service:
+        condition: service_healthy
+      order-service:
+        condition: service_started
 
 volumes:
   catalog-db-data:

@@ -8,9 +8,10 @@ from app.config import settings
 
 async def fetch_product_snapshot(product_id: uuid.UUID) -> dict:
     url = f"{settings.catalog_service_url}/api/v1/products/{product_id}"
+    headers = {"X-Internal-Service-Token": settings.internal_service_token}
     async with httpx.AsyncClient(timeout=5.0) as client:
         try:
-            response = await client.get(url)
+            response = await client.get(url, headers=headers)
         except httpx.HTTPError as exc:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

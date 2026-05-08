@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Админ-панель магазина ламп</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+    .hidden { display: none; }
+    input, textarea, select, button { width: 100%; margin: 4px 0; padding: 8px; box-sizing: border-box; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .actions { display: flex; gap: 8px; }
+    .actions button { width: auto; }
+    #status { margin-bottom: 12px; color: #444; }
+  </style>
+</head>
+<body>
+  <h1>Панель управления</h1>
+  <div id="status"></div>
+
+  <section id="authCard" class="card">
+    <h2>Вход</h2>
+    <input id="email" type="email" placeholder="Email" value="admin@example.com" />
+    <input id="password" type="password" placeholder="Пароль" value="Admin123!" />
+    <button id="loginBtn">Войти</button>
+    <button id="registerBtn">Зарегистрироваться</button>
+  </section>
+
+  <section id="panel" class="hidden">
+    <div class="card">
+      <button id="logoutBtn">Выйти</button>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h2>Товары</h2>
+        <input id="sku" placeholder="SKU" />
+        <input id="name" placeholder="Название" />
+        <textarea id="description" placeholder="Описание"></textarea>
+        <select id="category"></select>
+        <input id="price" type="number" min="0" placeholder="Цена в копейках" />
+        <input id="stock" type="number" min="0" placeholder="Остаток" />
+        <input id="baseType" placeholder="Цоколь (например E27)" />
+        <input id="imageUrl" placeholder="URL картинки" />
+        <button id="saveProductBtn">Сохранить товар</button>
+        <table>
+          <thead>
+            <tr><th>SKU</th><th>Название</th><th>Цена</th><th>Действия</th></tr>
+          </thead>
+          <tbody id="productsBody"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h2>Заказы</h2>
+        <table>
+          <thead>
+            <tr><th>Номер</th><th>Клиент</th><th>Сумма</th><th>Статус</th><th>Действие</th></tr>
+          </thead>
+          <tbody id="ordersBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const AUTH_URL = "http://localhost:8005";
+    const CATALOG_URL = "http://localhost:8001";
+    const ORDER_URL = "http://localhost:8002";
+    const ORDER_STATUSES = ["NEW", "CONFIRMED", "ASSEMBLING", "SHIPPED", "DELIVERED", "CANCELLED"];
+    let editProductId = null;
+    let categories = [];
+
+    function setStatus(text) { document.getElementById("status").textContent = text; }
+    function jwtToken() { return localStorage.getItem("jwt_token"); }
+    function authHeaders() { return { "Content-Type": "application/json", "Authorization": `Bearer ${jwtToken()}` }; }
+
+    function setAuthorized(authorized) {
+      document.getElementById("authCard").classList.toggle("hidden", authorized);
+      document.getElementById("panel").classList.toggle("hidden", !authorized);
+    }
+
+    async function register() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const res = await fetch(`${AUTH_URL}/register`, {
+        method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({email, password})
+      });
+      setStatus(res.status === 201 ? "Пользователь зарегистрирован" : "Ошибка регистрации");
+    }
+
+    async function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const res = await fetch(`${AUTH_URL}/auth`, {
+        method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({email, password})
+      });
+      if (res.status !== 200) { setStatus("Ошибка входа"); return; }
+      const data = await res.json();
+      localStorage.setItem("jwt_token", data.token);
+      setAuthorized(true);
+      await loadData();
+      setStatus("Вход выполнен");
+    }
+
+    function logout() {
+      localStorage.removeItem("jwt_token");
+      setAuthorized(false);
+      setStatus("Выход выполнен");
+    }
+
+    async function loadCategories() {
+      const res = await fetch(`${CATALOG_URL}/api/v1/categories`);
+      categories = res.ok ? await res.json() : [];
+      const select = document.getElementById("category");
+      select.innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+    }
+
+    async function loadProducts() {
+      const res = await fetch(`${CATALOG_URL}/api/v1/products`, { headers: authHeaders() });
+      if (!res.ok) { setStatus("Не удалось загрузить товары"); return; }
+      const products = await res.json();
+      const body = document.getElementById("productsBody");
+      body.innerHTML = "";
+      products.forEach(p => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${p.sku}</td><td>${p.name}</td><td>${p.price_cents}</td>
+          <td class="actions">
+            <button data-edit="${p.id}">Изменить</button>
+            <button data-delete="${p.id}">Удалить</button>
+          </td>`;
+        body.appendChild(tr);
+      });
+      body.querySelectorAll("button[data-edit]").forEach(btn => btn.addEventListener("click", () => beginEdit(btn.dataset.edit, products)));
+      body.querySelectorAll("button[data-delete]").forEach(btn => btn.addEventListener("click", () => deleteProduct(btn.dataset.delete)));
+    }
+
+    function beginEdit(id, products) {
+      const p = products.find(x => x.id === id);
+      if (!p) return;
+      editProductId = id;
+      document.getElementById("sku").value = p.sku;
+      document.getElementById("name").value = p.name;
+      document.getElementById("description").value = p.description || "";
+      document.getElementById("category").value = p.category_id;
+      document.getElementById("price").value = p.price_cents;
+      document.getElementById("stock").value = p.stock_qty;
+      document.getElementById("baseType").value = p.base_type || "";
+      document.getElementById("imageUrl").value = p.images?.[0]?.url || "";
+      setStatus(`Редактирование товара ${p.sku}`);
+    }
+
+    async function saveProduct() {
+      const payload = {
+        sku: document.getElementById("sku").value,
+        name: document.getElementById("name").value,
+        description: document.getElementById("description").value || null,
+        category_id: document.getElementById("category").value,
+        price_cents: Number(document.getElementById("price").value),
+        stock_qty: Number(document.getElementById("stock").value),
+        base_type: document.getElementById("baseType").value || null,
+        currency: "RUB",
+        image_urls: document.getElementById("imageUrl").value ? [document.getElementById("imageUrl").value] : []
+      };
+      const method = editProductId ? "PUT" : "POST";
+      const url = editProductId ? `${CATALOG_URL}/api/v1/products/${editProductId}` : `${CATALOG_URL}/api/v1/products`;
+      const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
+      if (!res.ok) { setStatus("Ошибка сохранения товара"); return; }
+      editProductId = null;
+      await loadProducts();
+      setStatus("Товар сохранен");
+    }
+
+    async function deleteProduct(id) {
+      const res = await fetch(`${CATALOG_URL}/api/v1/products/${id}`, { method: "DELETE", headers: authHeaders() });
+      if (res.status === 204) { await loadProducts(); setStatus("Товар деактивирован"); }
+      else { setStatus("Ошибка удаления товара"); }
+    }
+
+    async function loadOrders() {
+      const res = await fetch(`${ORDER_URL}/api/v1/orders`, { headers: authHeaders() });
+      if (!res.ok) { setStatus("Не удалось загрузить заказы"); return; }
+      const orders = await res.json();
+      const body = document.getElementById("ordersBody");
+      body.innerHTML = "";
+      orders.forEach(o => {
+        const options = ORDER_STATUSES.map(s => `<option value="${s}" ${s === o.status ? "selected" : ""}>${s}</option>`).join("");
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${o.order_number}</td><td>${o.customer_name}</td><td>${o.total_cents}</td>
+          <td><select data-status="${o.id}">${options}</select></td>
+          <td><button data-update="${o.id}">Обновить</button></td>`;
+        body.appendChild(tr);
+      });
+      body.querySelectorAll("button[data-update]").forEach(btn => btn.addEventListener("click", () => updateOrderStatus(btn.dataset.update)));
+    }
+
+    async function updateOrderStatus(orderId) {
+      const selected = document.querySelector(`select[data-status="${orderId}"]`).value;
+      const res = await fetch(`${ORDER_URL}/api/v1/orders/${orderId}/status`, {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify({status: selected})
+      });
+      if (res.ok) { await loadOrders(); setStatus("Статус заказа обновлен"); }
+      else { setStatus("Недопустимый переход или ошибка"); }
+    }
+
+    async function loadData() {
+      await loadCategories();
+      await loadProducts();
+      await loadOrders();
+    }
+
+    document.getElementById("registerBtn").addEventListener("click", register);
+    document.getElementById("loginBtn").addEventListener("click", login);
+    document.getElementById("logoutBtn").addEventListener("click", logout);
+    document.getElementById("saveProductBtn").addEventListener("click", saveProduct);
+
+    setAuthorized(!!jwtToken());
+    if (jwtToken()) loadData();
+  </script>
+</body>
+</html>
