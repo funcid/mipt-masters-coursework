@@ -20,6 +20,14 @@ env/
 htmlcov/
 coverage.xml
 
+.mutmut-cache
+.mutmut_cache
+
+!2 semester/services/qa/mutation_project/htmlcov/
+!2 semester/services/qa/mutation_project/htmlcov/**
+
+2 semester/services/qa/*.zip
+
 # Tool caches
 .mypy_cache/
 .ruff_cache/

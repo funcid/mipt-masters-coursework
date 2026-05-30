@@ -1,0 +1,5 @@
+
+[mutmut]
+paths_to_mutate = billing
+runner = python -m pytest -q
+jobs = 4
