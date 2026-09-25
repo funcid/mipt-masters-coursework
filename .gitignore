@@ -40,3 +40,22 @@ coverage.xml
 
 # Sensitive interview transcripts (custdev)
 2 semester/notebooks/startup/custdev/*.txt
+
+# ВКРС: рабочие артефакты локально (README и .gitkeep остаются в git)
+3 semester/FuncFund_ВКРС/**/01 — Финал/**
+!3 semester/FuncFund_ВКРС/**/01 — Финал/**/
+!3 semester/FuncFund_ВКРС/**/01 — Финал/**/.gitkeep
+
+3 semester/FuncFund_ВКРС/**/02 — Общие артефакты команды/**
+!3 semester/FuncFund_ВКРС/**/02 — Общие артефакты команды/**/
+!3 semester/FuncFund_ВКРС/**/02 — Общие артефакты команды/**/README.md
+!3 semester/FuncFund_ВКРС/**/02 — Общие артефакты команды/**/.gitkeep
+
+3 semester/FuncFund_ВКРС/**/03 — Индивидуальные части/**
+!3 semester/FuncFund_ВКРС/**/03 — Индивидуальные части/**/
+!3 semester/FuncFund_ВКРС/**/03 — Индивидуальные части/**/README.md
+!3 semester/FuncFund_ВКРС/**/03 — Индивидуальные части/**/.gitkeep
+
+3 semester/FuncFund_ВКРС/**/04 — Архив/**
+!3 semester/FuncFund_ВКРС/**/04 — Архив/**/
+!3 semester/FuncFund_ВКРС/**/04 — Архив/**/.gitkeep
