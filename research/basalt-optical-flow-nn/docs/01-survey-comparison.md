@@ -91,33 +91,36 @@
 | FastFlowNet | ускоренный lightweight | ориентир под embedded |
 | Кастомный student (цель работы) | distillation Basalt SE2 + GT | целевой деплой RKNN INT8 |
 
-## 6. Сводная таблица (качественная; цифры — после T2)
+## 6. Сводная таблица
 
-| Метод | Выход | Движение | GT для инференса | Dense EPE* | Sparse EPE* | Latency* | #params | Роль |
-|-------|-------|----------|------------------|------------|-------------|----------|---------|------|
-| OpenCV LK | sparse | transl. | нет | — | TBD | TBD | — | baseline |
-| Farneback | dense | dense | нет | TBD | TBD† | TBD | — | baseline |
+**T2 (этот ПК):** Windows, RTX 4080, CUDA 12.4; `python -m src.compare --config configs/default.yaml`; MPI Sintel training/clean — **первая пара** (не полный leaderboard); resize GT nearest; 500 общих Shi-Tomasi keypoints; latency = mean 50 frames после warmup 5. RAFT: `raft-sintel.pth`, iters=20.
+
+Цифры ниже: **640×480** (в скобках — 1280×720). Полный CSV: `results/comparison.csv` (локально).
+
+| Метод | Выход | Движение | GT для инференса | Dense EPE* | Sparse EPE* | Latency* ms | #params | Роль |
+|-------|-------|----------|------------------|------------|-------------|-------------|---------|------|
+| OpenCV LK | sparse | transl. | нет | — | **0.37** (0.48) | **1.4** (2.4) | — | baseline |
+| Farneback | dense | dense | нет | **0.59** (1.44) | **0.32** (0.46)† | **36.8** (115) | — | baseline |
 | DIS (opt.) | dense | dense | нет | TBD | TBD† | TBD | — | baseline |
 | Basalt SE2 | sparse_se2 | SE(2) | нет | — | TBD | TBD (медл.) | — | **teacher** |
 | FlowNet2 | dense | dense | нет | lit. | TBD† | TBD | ~160M | hist. |
 | PWC-Net | dense | dense | нет | lit. | TBD† | TBD | ~9M | hist. |
-| RAFT | dense | dense | нет | lit. | TBD† | TBD | ~5M | NN baseline |
+| RAFT | dense | dense | нет | **0.14** (0.13) | **0.12** (0.14)† | **60.7** (136) | ~5M | NN baseline |
 | SEA-RAFT | dense | dense | нет | lit. | TBD† | TBD | ~ | speed NN |
 | GMFlow | dense | dense | нет | lit. | TBD† | TBD | ~ | matching |
 | FlowFormer | dense | dense | нет | lit. | TBD† | TBD | ~ | SOTA acc. |
 | Lite/FastFlowNet | dense | dense | нет | lit. | TBD† | TBD | ~1–5M | student cand. |
 | **Our student** | TBD | TBD | нет | TBD | TBD | **≥20 FPS RK3588** | TBD | **вклад** |
 
-\* TBD — заполняется прогоном `src/compare.py` на вашей машине.  
-† Sparse из dense = семплирование в общих keypoints.  
-lit. = значение из литературы до своего прогона (не смешивать в финальной таблице статьи с TBD).
+\* Свои прогоны T2 vs lit. (литература) — не смешивать в одной ячейке статьи без пометки.  
+† Sparse из dense = семплирование в общих keypoints.
 
 ## 7. Выводы для дизайна student-сети
 
 1. **Не сравнивать** Basalt SE2 только по dense Sintel EPE — у teacher другой выход; нужен sparse protocol.
 2. Pareto для RK3588: смотреть Lite/Fast/SEA-RAFT-подобные архитектуры, не FlowFormer.
 3. Distillation: Basalt даёт сильный **sparse SE(2) prior** на реальных VIO-последовательностях без dense GT.
-4. Итоговая таблица статьи = этот шаблон + ваши latency на GPU и RK3588.
+4. Итоговая таблица статьи = этот шаблон + latency на GPU (T2 частично заполнен) и RK3588 (T5).
 
 ## 8. Ключевые ссылки
 

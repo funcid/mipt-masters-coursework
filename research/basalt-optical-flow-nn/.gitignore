@@ -6,3 +6,6 @@ results/*.md
 !results/.gitkeep
 data/**
 !data/.gitkeep
+third_party/
+weights/
+*.zip

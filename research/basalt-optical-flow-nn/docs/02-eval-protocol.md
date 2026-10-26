@@ -1,6 +1,8 @@
 # Протокол оценки (единое пространство)
 
-Связан с `configs/default.yaml` и `src/compare.py`. Прогоны — на **отдельной** машине (GPU / затем RK3588), не на ноутбуке разработки.
+Связан с `configs/default.yaml` и `src/compare.py`.
+
+**Eval-машина (T2):** Windows 10, NVIDIA GeForce RTX 4080, драйвер NVIDIA 610.88 / CUDA UMD 13.3, runtime PyTorch CUDA **12.4**. Дальше — RK3588 (T5).
 
 ## 1. Датасеты
 
@@ -11,7 +13,7 @@
 | **MPI Sintel** (clean / final) | synthetic movie, dense flow `.flo` | основная dense-таблица; clean = «лёгкий», final = артефакты/blur |
 | **KITTI 2015** | real driving, sparse-ish GT + Fl-all | обобщение на реальность; метрика Fl-all |
 
-Пути по умолчанию: `data/sintel`, `data/kitti2015` (см. README).
+Пути по умолчанию: `data/sintel`, `data/kitti2015` (см. README). На T2: Sintel распакован; KITTI в YAML `enabled: false`.
 
 ### 1.2 Без dense GT (teacher / VIO-реализм)
 
@@ -71,20 +73,36 @@
 - sparse: `endpoint_epe`, `success_rate`, `n_tracks`
 - `latency_ms` (или FPS = 1000/latency_ms)
 
-Строки `status=not_implemented` — stubs (RAFT/Basalt), пока не подключены веса/бинарь.
+Строки `status=not_implemented` — stubs (SEA-RAFT / Basalt и др.), пока не подключены веса/бинарь. **RAFT** на T2 — рабочий runner (`src/runners/raft.py`).
 
 ## 5. Воспроизводимость (ВАК)
 
-- Зафиксировать: git commit, версии `opencv`, `torch`, CUDA, драйвер NPU.
-- `experiment.seed` в YAML.
-- Не смешивать literature numbers и свои прогоны в одной ячейке без пометки.
-- Конфиг эксперимента класть рядом с CSV в `results/`.
+Зафиксированный стек T2 (этот ПК):
+
+| Компонент | Версия |
+|-----------|--------|
+| Python | 3.11.0 |
+| OpenCV (`opencv-python`) | 5.0.0 |
+| NumPy | 2.4.6 |
+| SciPy | 1.17.1 |
+| PyTorch | 2.6.0+cu124 |
+| CUDA (torch) | 12.4 |
+| GPU | NVIDIA GeForce RTX 4080 |
+| NVIDIA driver | 610.88 |
+| RAFT | `princeton-vl/RAFT` + `raft-sintel.pth`, iters=20 |
+
+Также: git commit репозитория, `experiment.seed` в YAML.  
+Не смешивать literature numbers и свои прогоны в одной ячейке без пометки.  
+Конфиг эксперимента класть рядом с CSV в `results/`.
+
+Текущий `compare.py` берёт **одну** первую доступную Sintel-пару (smoke / protocol check). Полный average по training — отдельный цикл (следующий шаг после T2).
 
 ## 6. Smoke-тест без датасетов
 
-```bash
+```powershell
 cd research/basalt-optical-flow-nn
+.\.venv\Scripts\Activate.ps1
 python -m src.compare --synthetic
 ```
 
-Синтетическая пара со сдвигом (dx, dy) проверяет LK/Farneback и пайплайн CSV. Нейросети и Basalt останутся `not_implemented`, пока не включены в YAML и не установлены.
+Синтетическая пара со сдвигом (dx, dy) проверяет LK / Farneback / RAFT и пайплайн CSV. Basalt и прочие stubs останутся `not_implemented`, пока не включены в YAML.

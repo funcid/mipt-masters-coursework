@@ -4,8 +4,9 @@ opencv-python>=4.8
 PyYAML>=6.0
 tqdm>=4.66
 pandas>=2.0
+scipy>=1.11
 
-# Optional: neural optical flow (install on GPU machine)
+# Neural optical flow (GPU machine; install CUDA wheel separately, see README)
 # torch>=2.1
 # torchvision>=0.16
-# # official RAFT / GMFlow / etc. — see README
+# # official RAFT — clone into third_party/RAFT, weights under weights/

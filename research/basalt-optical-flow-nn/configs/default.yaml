@@ -17,9 +17,10 @@ datasets:
     passes: [clean, final]
     split: training  # training has GT; test for leaderboard only
   kitti2015:
-    enabled: true
+    enabled: false
     root: data/kitti2015
     split: training
+
   # Sequences without dense GT — Basalt SE2 as teacher / sparse protocol
   euroc:
     enabled: false
@@ -47,12 +48,14 @@ methods:
     enabled: false
     kind: dense
 
-  # Neural (stubs until weights/repos installed on GPU machine)
+  # Neural (RAFT wired; others remain stubs)
   - id: raft
-    enabled: false
+    enabled: true
     kind: dense
-    weights: null
+    weights: weights/raft-sintel.pth
     device: cuda
+    iters: 20
+
   - id: sea_raft
     enabled: false
     kind: dense
