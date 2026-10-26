@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
@@ -13,8 +12,8 @@ import torch
 import torch.nn.functional as F
 
 from .base import FlowResult, OpticalFlowRunner
+from ._third_party import ROOT, ensure_path, purge_raft_family
 
-ROOT = Path(__file__).resolve().parents[2]
 RAFT_CORE = ROOT / "third_party" / "RAFT" / "core"
 
 
@@ -77,9 +76,8 @@ class RaftRunner(OpticalFlowRunner):
         if not self.weights_path.is_file():
             raise NotImplementedError(f"RAFT weights missing: {self.weights_path}")
 
-        core_str = str(RAFT_CORE)
-        if core_str not in sys.path:
-            sys.path.insert(0, core_str)
+        purge_raft_family()
+        ensure_path(RAFT_CORE)
 
         # Inline import required: RAFT core is added to sys.path only after
         # verifying third_party/RAFT exists (not a fixed installable package).

@@ -93,27 +93,29 @@
 
 ## 6. Сводная таблица
 
-**T2 (этот ПК):** Windows, RTX 4080, CUDA 12.4; `python -m src.compare --config configs/default.yaml`; MPI Sintel training/clean — **первая пара** (не полный leaderboard); resize GT nearest; 500 общих Shi-Tomasi keypoints; latency = mean 50 frames после warmup 5. RAFT: `raft-sintel.pth`, iters=20.
+**T2 (этот ПК):** Windows, RTX 4080, CUDA 12.4; `python -m src.compare --config configs/default.yaml`; MPI Sintel training/clean — **первая пара** (не полный leaderboard); resize GT nearest; 500 общих Shi-Tomasi keypoints; latency = mean 50 frames после warmup 5.  
+RAFT: `raft-sintel.pth`, iters=20. SEA-RAFT: HF `Tartan-C-T-TSKH432x960-M` + `sintel-M.json`. GMFlow: `gmflow_sintel-0c07dcb3.pth`.
 
 Цифры ниже: **640×480** (в скобках — 1280×720). Полный CSV: `results/comparison.csv` (локально).
 
 | Метод | Выход | Движение | GT для инференса | Dense EPE* | Sparse EPE* | Latency* ms | #params | Роль |
 |-------|-------|----------|------------------|------------|-------------|-------------|---------|------|
-| OpenCV LK | sparse | transl. | нет | — | **0.37** (0.48) | **1.4** (2.4) | — | baseline |
-| Farneback | dense | dense | нет | **0.59** (1.44) | **0.32** (0.46)† | **36.8** (115) | — | baseline |
-| DIS (opt.) | dense | dense | нет | TBD | TBD† | TBD | — | baseline |
-| Basalt SE2 | sparse_se2 | SE(2) | нет | — | TBD | TBD (медл.) | — | **teacher** |
+| OpenCV LK | sparse | transl. | нет | — | **0.37** (0.48) | **1.4** (2.1) | — | baseline |
+| Farneback | dense | dense | нет | **0.59** (1.44) | **0.32** (0.46)† | **34.8** (111) | — | baseline |
+| DIS | dense | dense | нет | **0.29** (0.34) | **0.29** (0.42)† | **10.9** (24.6) | — | baseline |
+| Basalt SE2 | sparse_se2 | SE(2) | нет | — | **0.28** (0.44) | **~3300** (~3480)* | — | **teacher** |
 | FlowNet2 | dense | dense | нет | lit. | TBD† | TBD | ~160M | hist. |
 | PWC-Net | dense | dense | нет | lit. | TBD† | TBD | ~9M | hist. |
-| RAFT | dense | dense | нет | **0.14** (0.13) | **0.12** (0.14)† | **60.7** (136) | ~5M | NN baseline |
-| SEA-RAFT | dense | dense | нет | lit. | TBD† | TBD | ~ | speed NN |
-| GMFlow | dense | dense | нет | lit. | TBD† | TBD | ~ | matching |
+| RAFT | dense | dense | нет | **0.14** (0.13) | **0.12** (0.14)† | **59.2** (135) | ~5M | NN baseline |
+| SEA-RAFT | dense | dense | нет | **0.085** (0.084) | **0.087** (0.12)† | **28.0** (94.7) | ~ | speed NN |
+| GMFlow | dense | dense | нет | **0.43** (1.01) | **0.42** (1.12)† | **25.8** (150) | ~ | matching |
 | FlowFormer | dense | dense | нет | lit. | TBD† | TBD | ~ | SOTA acc. |
 | Lite/FastFlowNet | dense | dense | нет | lit. | TBD† | TBD | ~1–5M | student cand. |
 | **Our student** | TBD | TBD | нет | TBD | TBD | **≥20 FPS RK3588** | TBD | **вклад** |
 
 \* Свои прогоны T2 vs lit. (литература) — не смешивать в одной ячейке статьи без пометки.  
-† Sparse из dense = семплирование в общих keypoints.
+† Sparse из dense = семплирование в общих keypoints.  
+\* Basalt SE2 latency — Python-порт Pattern51 IC из open headers (не C++ `libbasalt`); Docker-образ `basalt-of:local` содержит официальные бинарники + тот же pair-track.
 
 ## 7. Выводы для дизайна student-сети
 

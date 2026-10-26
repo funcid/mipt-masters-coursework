@@ -45,27 +45,33 @@ methods:
     enabled: true
     kind: dense
   - id: opencv_dis
-    enabled: false
+    enabled: true
     kind: dense
+    preset: medium
 
-  # Neural (RAFT wired; others remain stubs)
+  # Neural (wired on this machine where possible)
   - id: raft
     enabled: true
     kind: dense
     weights: weights/raft-sintel.pth
     device: cuda
     iters: 20
-
   - id: sea_raft
-    enabled: false
+    enabled: true
     kind: dense
-    weights: null
+    cfg: third_party/SEA-RAFT/config/eval/sintel-M.json
+    hf_url: MemorySlices/Tartan-C-T-TSKH432x960-M
     device: cuda
   - id: gmflow
-    enabled: false
+    enabled: true
     kind: dense
-    weights: null
+    weights: weights/gmflow_sintel-0c07dcb3.pth
     device: cuda
+    num_scales: 1
+    attn_splits_list: [2]
+    corr_radius_list: [-1]
+    prop_radius_list: [-1]
+  # Need official repos + weights; not wired here
   - id: flowformer
     enabled: false
     kind: dense
@@ -82,12 +88,15 @@ methods:
     weights: null
     device: cuda
 
-  # Basalt SE2 teacher (external binary / library)
+  # Basalt SE2 teacher (Pattern51 IC from Basalt headers; Docker image optional)
   - id: basalt_se2
-    enabled: false
+    enabled: true
     kind: sparse_se2
-    binary: null  # e.g. /opt/basalt/bin/basalt_optical_flow
-    config: null
+    backend: native   # native | docker
+    docker_image: basalt-of:local
+    optical_flow_levels: 3
+    optical_flow_max_iterations: 5
+    optical_flow_max_recovered_dist2: 0.04
 
 metrics:
   dense: [epe, px1, px3, px5, fl_all]

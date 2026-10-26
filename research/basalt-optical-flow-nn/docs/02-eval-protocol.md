@@ -73,7 +73,8 @@
 - sparse: `endpoint_epe`, `success_rate`, `n_tracks`
 - `latency_ms` (или FPS = 1000/latency_ms)
 
-Строки `status=not_implemented` — stubs (SEA-RAFT / Basalt и др.), пока не подключены веса/бинарь. **RAFT** на T2 — рабочий runner (`src/runners/raft.py`).
+Строки `status=not_implemented` — stubs (FlowFormer / Lite/FastFlowNet / Basalt), пока не подключены веса/бинарь.  
+На T2 рабочие runners: LK, Farneback, DIS, RAFT, SEA-RAFT, GMFlow.
 
 ## 5. Воспроизводимость (ВАК)
 

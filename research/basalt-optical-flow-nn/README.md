@@ -101,29 +101,33 @@ python -m src.compare --pair /path/a.png /path/b.png --flow-gt /path/gt.flo
 ## Статус T2 (этот ПК)
 
 Прогон на MPI Sintel (первая training/clean пара, resize + общий sparse protocol), **RTX 4080**, CUDA 12.4.  
-Latency = mean 50 frames после warmup 5. RAFT: `raft-sintel.pth`, iters=20.
+**7 методов:** LK, Farneback, DIS, RAFT, SEA-RAFT, GMFlow, **Basalt SE2**.  
+Latency = mean 50 frames после warmup 5.
 
-### Latency (ниже = быстрее)
+**Basalt SE2:** официальный бинарь `basalt_opt_flow` живёт в Docker-образе `basalt-of:local` (EuRoC/T3), но не умеет пару кадров→NPZ. Для sparse protocol подключён **тот же SE2 IC / Pattern51 алгоритм** из open headers Basalt (`backend: native` для latency; `backend: docker` — тот же код в контейнере).  
+Не подняты: **FlowFormer / LiteFlowNet / FastFlowNet** (stubs).
 
-```mermaid
-xychart-beta
-    title "Latency ms — RTX 4080"
-    x-axis ["LK 480p", "FB 480p", "RAFT 480p", "LK 720p", "FB 720p", "RAFT 720p"]
-    y-axis "ms" 0 --> 150
-    bar [1.4, 36.8, 60.7, 2.4, 115.1, 136.0]
-```
-
-### Качество: Dense EPE и Sparse endpoint EPE (ниже = лучше)
+### Latency @ 640×480 (ниже = быстрее; Basalt SE2 ~3.3s — Python ref)
 
 ```mermaid
 xychart-beta
-    title "EPE — Sintel one-pair (RTX 4080)"
-    x-axis ["FB dens 480", "RAFT dens 480", "LK sp 480", "FB sp 480", "RAFT sp 480", "FB dens 720", "RAFT dens 720", "LK sp 720", "FB sp 720", "RAFT sp 720"]
-    y-axis "EPE px" 0 --> 1.6
-    bar [0.59, 0.14, 0.37, 0.32, 0.12, 1.44, 0.13, 0.48, 0.46, 0.14]
+    title "Latency ms @ 640x480 — RTX 4080"
+    x-axis ["LK", "DIS", "GMFlow", "SEA-RAFT", "Farneback", "RAFT"]
+    y-axis "ms" 0 --> 70
+    bar [1.4, 11.8, 24.7, 27.8, 36.9, 60.1]
 ```
 
-### Pareto: качество vs скорость (640×480)
+### Dense EPE @ 640×480 (ниже = лучше)
+
+```mermaid
+xychart-beta
+    title "Dense EPE @ 640x480 — Sintel one-pair"
+    x-axis ["SEA-RAFT", "RAFT", "DIS", "GMFlow", "Farneback"]
+    y-axis "EPE px" 0 --> 0.7
+    bar [0.085, 0.136, 0.288, 0.433, 0.589]
+```
+
+### Pareto: sparse EPE vs latency (640×480)
 
 ```mermaid
 quadrantChart
@@ -134,50 +138,60 @@ quadrantChart
     quadrant-2 Fast but inaccurate
     quadrant-3 Fast and accurate
     quadrant-4 Slow but accurate
-    LK: [0.08, 0.35]
-    Farneback: [0.28, 0.28]
-    RAFT: [0.42, 0.08]
+    LK: [0.02, 0.37]
+    DIS: [0.07, 0.29]
+    GMFlow: [0.17, 0.42]
+    SEA-RAFT: [0.19, 0.09]
+    Farneback: [0.23, 0.32]
+    RAFT: [0.39, 0.12]
 ```
 
-Координаты на Pareto: X ≈ latency / 150, Y ≈ sparse EPE / 1.0 (нормировка только для картинки).
+Координаты: X ≈ latency / 150, Y ≈ sparse EPE (нормировка для картинки).
 
 ### Таблица
 
-| Method | Res | Dense EPE | Sparse EPE | Latency ms | ≈FPS |
-|--------|-----|-----------|------------|------------|------|
-| opencv_lk | 640×480 | — | 0.37 | 1.4 | ~710 |
-| opencv_farneback | 640×480 | 0.59 | 0.32 | 36.8 | ~27 |
-| raft | 640×480 | **0.14** | **0.12** | 60.7 | ~16 |
-| opencv_lk | 1280×720 | — | 0.48 | 2.4 | ~420 |
-| opencv_farneback | 1280×720 | 1.44 | 0.46 | 115.1 | ~9 |
-| raft | 1280×720 | **0.13** | **0.14** | 136.0 | ~7 |
+| Method | Res | Dense EPE | Sparse EPE | Success | Latency ms | ≈FPS |
+|--------|-----|-----------|------------|---------|------------|------|
+| opencv_lk | 640×480 | — | 0.37 | 100% | **1.3** | ~740 |
+| opencv_dis | 640×480 | 0.29 | 0.29 | 100% | **11.8** | ~85 |
+| gmflow | 640×480 | 0.43 | 0.42 | 100% | **24.7** | ~40 |
+| sea_raft | 640×480 | **0.085** | **0.087** | 100% | **27.8** | ~36 |
+| opencv_farneback | 640×480 | 0.59 | 0.32 | 100% | 36.9 | ~27 |
+| raft | 640×480 | 0.14 | 0.12 | 100% | 60.1 | ~17 |
+| basalt_se2 | 640×480 | — | **0.28** | 78% | ~3300 | ~0.3 |
+| opencv_lk | 1280×720 | — | 0.48 | 100% | **2.2** | ~460 |
+| opencv_dis | 1280×720 | 0.34 | 0.42 | 100% | **26.6** | ~38 |
+| sea_raft | 1280×720 | **0.084** | **0.12** | 100% | **90.1** | ~11 |
+| opencv_farneback | 1280×720 | 1.44 | 0.46 | 100% | 114 | ~9 |
+| raft | 1280×720 | 0.13 | 0.14 | 100% | 128 | ~8 |
+| gmflow | 1280×720 | 1.01 | 1.12 | 100% | 144 | ~7 |
+| basalt_se2 | 1280×720 | — | 0.44 | 81% | ~3480 | ~0.3 |
 
-Это **one-pair protocol** каркаса (`compare.py`), не полный Sintel leaderboard. Сырые CSV: `results/comparison.csv`. Обзорная таблица — в `docs/01-survey-comparison.md`.
+На 480p лучший NN accuracy–speed: **SEA-RAFT**. Teacher **Basalt SE2** — sparse EPE ~0.28 (лучше LK), но текущая Python-реализация медленная (цель T5 — RKNN student ≥20 FPS).
 
-## Подключение других нейросетей
+### Docker Basalt
 
-1. Клонировать официальный репозиторий (SEA-RAFT / GMFlow / …).
-2. Скачать pretrained weights.
-3. В YAML: `methods[].enabled: true`, указать `weights` и `device: cuda`.
-4. Реализовать runner по образцу `src/runners/raft.py` — интерфейс `predict(img1, img2) -> FlowResult` с `flow_dense` HxWx2.
+```powershell
+docker build -t basalt-of:local docker/basalt_of
+docker run --rm basalt-of:local basalt_opt_flow --help   # official binary
+# pair track (same SE2 algo):
+# docker run --rm -v ${PWD}/tmp:/data basalt-of:local python3 /opt/basalt_of/track_pair.py ...
+```
 
-Пока stub поднимает `NotImplementedError` → в CSV строка `status=not_implemented`.
+В YAML: `basalt_se2.backend: docker` чтобы гонять pair-track в контейнере (для latency оставляйте `native`).
+
+Это **one-pair protocol** (`compare.py`), не полный Sintel leaderboard. Сырые CSV: `results/comparison.csv`. Обзор — `docs/01-survey-comparison.md`.
+
+## Подключение остальных (stubs)
+
+FlowFormer / LiteFlowNet / FastFlowNet: клон upstream + веса + runner по образцу `src/runners/raft.py` / `sea_raft.py`.  
+Пока stub → `status=not_implemented` в CSV.
 
 ## Basalt SE2 (teacher)
 
-1. Собрать [Basalt](https://gitlab.com/VladyslavUsenko/basalt) на Linux (зависимости: Eigen, Sophus, OpenCV, TBB и т.д. — см. upstream README).
-2. Написать тонкий CLI или pybind: пара кадров (+ keypoints) → `points1`, `points2`, `status`, опционально `se2_params`.
-3. В YAML:
+Официальный [Basalt](https://gitlab.com/VladyslavUsenko/basalt) ставится в Docker (`docker/basalt_of`). `basalt_opt_flow` рассчитан на EuRoC-датасет, не на пару PNG.
 
-```yaml
-  - id: basalt_se2
-    enabled: true
-    kind: sparse_se2
-    binary: /path/to/basalt_of_cli
-    config: /path/to/basalt_config.json
-```
-
-4. Дописать I/O в `src/runners/basalt_stub.py` (сейчас — контракт и заглушка).
+Для бенчмарка sparse protocol: runner `basalt_se2` (Pattern51 + SE2 IC из open headers). По умолчанию `backend: native`; для прогона в контейнере — `backend: docker` + образ `basalt-of:local`.
 
 ## RK3588 (этап T5, не T1/T2)
 
@@ -188,7 +202,7 @@ quadrantChart
 | Этап | Статус |
 |------|--------|
 | T1 Обзор + протокол + каркас бенчмарка | каталог готов |
-| T2 Прогон baselines на GPU | **сделано** (LK / Farneback / RAFT на Sintel, RTX 4080) |
+| T2 Прогон baselines на GPU | **сделано** (LK / Farneback / DIS / RAFT / SEA-RAFT / GMFlow / Basalt SE2 на Sintel; Docker `basalt-of:local`) |
 | T3 Basalt teacher / labels | |
 | T4 Обучение student + distillation | |
 | T5 RK3588 ≥20 FPS | |

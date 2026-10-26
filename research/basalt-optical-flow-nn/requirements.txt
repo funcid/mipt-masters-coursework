@@ -5,8 +5,11 @@ PyYAML>=6.0
 tqdm>=4.66
 pandas>=2.0
 scipy>=1.11
+einops>=0.7
+huggingface_hub>=0.20
+safetensors>=0.4
 
 # Neural optical flow (GPU machine; install CUDA wheel separately, see README)
 # torch>=2.1
 # torchvision>=0.16
-# # official RAFT — clone into third_party/RAFT, weights under weights/
+# # RAFT / SEA-RAFT / GMFlow — clone into third_party/, weights under weights/
