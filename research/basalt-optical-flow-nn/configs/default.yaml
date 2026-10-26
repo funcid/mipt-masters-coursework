@@ -1,0 +1,99 @@
+# Unified optical flow comparison config.
+# Paths are relative to the project root or absolute on the evaluation machine.
+
+experiment:
+  name: basalt_of_baseline_compare
+  seed: 42
+  # Resolutions for latency (ms/frame) and accuracy runs
+  resolutions:
+    - [640, 480]
+    - [1280, 720]
+
+datasets:
+  # Place data under data/ or override paths on the evaluation machine
+  sintel:
+    enabled: true
+    root: data/sintel
+    passes: [clean, final]
+    split: training  # training has GT; test for leaderboard only
+  kitti2015:
+    enabled: true
+    root: data/kitti2015
+    split: training
+  # Sequences without dense GT — Basalt SE2 as teacher / sparse protocol
+  euroc:
+    enabled: false
+    root: data/euroc
+    sequences: []
+
+sparse_protocol:
+  detector: shi_tomasi  # shi_tomasi | fast
+  max_corners: 500
+  quality_level: 0.01
+  min_distance: 8
+  block_size: 7
+  # Same keypoints for LK, Basalt; dense NN flow is sampled at these points
+  same_keypoints_for_all: true
+
+methods:
+  # Classical
+  - id: opencv_lk
+    enabled: true
+    kind: sparse
+  - id: opencv_farneback
+    enabled: true
+    kind: dense
+  - id: opencv_dis
+    enabled: false
+    kind: dense
+
+  # Neural (stubs until weights/repos installed on GPU machine)
+  - id: raft
+    enabled: false
+    kind: dense
+    weights: null
+    device: cuda
+  - id: sea_raft
+    enabled: false
+    kind: dense
+    weights: null
+    device: cuda
+  - id: gmflow
+    enabled: false
+    kind: dense
+    weights: null
+    device: cuda
+  - id: flowformer
+    enabled: false
+    kind: dense
+    weights: null
+    device: cuda
+  - id: liteflownet
+    enabled: false
+    kind: dense
+    weights: null
+    device: cuda
+  - id: fastflownet
+    enabled: false
+    kind: dense
+    weights: null
+    device: cuda
+
+  # Basalt SE2 teacher (external binary / library)
+  - id: basalt_se2
+    enabled: false
+    kind: sparse_se2
+    binary: null  # e.g. /opt/basalt/bin/basalt_optical_flow
+    config: null
+
+metrics:
+  dense: [epe, px1, px3, px5, fl_all]
+  sparse: [endpoint_epe, success_rate]
+  latency: true
+  warmup_frames: 5
+  measure_frames: 50
+
+output:
+  results_dir: results
+  csv_name: comparison.csv
+  markdown_name: comparison.md

@@ -1,0 +1,11 @@
+# Benchmark / evaluation (run on machine with CUDA for NN methods)
+numpy>=1.24
+opencv-python>=4.8
+PyYAML>=6.0
+tqdm>=4.66
+pandas>=2.0
+
+# Optional: neural optical flow (install on GPU machine)
+# torch>=2.1
+# torchvision>=0.16
+# # official RAFT / GMFlow / etc. — see README
