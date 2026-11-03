@@ -1,0 +1,69 @@
+# B8. Baseline по ДС (FuncFund / гипотеза A9)
+
+**Проект:** FuncFund · **Автор:** Царюк А. В. · **Дата:** 03.11.2026  
+**Связь:** [`A9-личная-гипотеза-ДС.md`](A9-личная-гипотеза-ДС.md) · код [`funcid/funcfund`](https://github.com/funcid/funcfund)
+
+> Это baseline **продуктового пайплайна данных** НИР 3 (не Basalt OF). Статья Basalt — параллельный трек.
+
+## 1. Объект baseline
+
+Rule-based пайплайн без ML:
+
+```text
+отчёт / API брокера
+  → parse / sync (Сбер HTML | Т-Инвестиции API | manual)
+  → normalize тикеров (dictionary / OpenSearch v3 + MOEX meta)
+  → valuation (котировки MOEX / ЦБ / Binance + локальные правила)
+  → snapshot (ClickHouse)
+  → serve (REST history + WebSocket dashboard)
+```
+
+## 2. Что зафиксировано как «текущая система» (окт–нояб 2026)
+
+| Компонент | Реализация | Статус |
+|---|---|---|
+| Импорт Сбер | `SberBrokerHtmlPortfolioImportParser` | ✅ в проде/демо |
+| Т-Инвестиции | API connect + sync лотов | ✅ |
+| Manual assets | MOEX picker + dictionary | ✅ |
+| Dictionary / search | OpenSearch assets v3 | ✅ |
+| Valuation | библиотека `valuation` + fetcher | ✅ |
+| History | ClickHouse snapshots + Premium gating | ✅ |
+| Auth / billing | JWT, OAuth Яндекс/VK, ЮKassa | ✅ (вне метрик H_DS, но в MVP) |
+| Демо | https://funcfund.ru · демка акселя 01.11 | ✅ |
+
+## 3. Метрики качества (из A9) — что меряем на baseline
+
+| ID | Метрика | Определение | Цель НИР 3 |
+|---|---|---|---|
+| M1 | Parse / sync success rate | успешные импорты (или sync) / попытки | ≥80% |
+| M2 | Valuation relative error | \|V_mvp − V_ref\| / V_ref | ≤5% у ≥80% кейсов |
+| M3 | Quote coverage | позиции с котировкой / торгуемые | ≥95% ликвидный MOEX |
+| M4 | Time-to-value | мин от регистрации до дашборда с данными | медиана ≤15 |
+| M5 | Multi-source rate | доля тестовой группы с ≥2 источниками на экране | →100% при n≥5 |
+
+## 4. Подходы для сравнения (вход в B9)
+
+| ID | Подход | Описание |
+|---|---|---|
+| A | Manual-only | только ручной ввод позиций |
+| B | Сбер HTML | импорт отчёта без второго брокера |
+| C | Сбер + Т / manual | multi-source (целевой MVP волны 1) |
+
+Baseline для экспериментов = **B** (уже работал до Т) и **C** (текущий прод-контур).  
+A — контроль «без автоматизации».
+
+## 5. Данные эксперимента
+
+- Выборка: ≥5 бета-портфелей (кандидаты = CustDev, согласия получены — B1/B2).  
+- Эталон V_ref: сумма из исходного отчёта и/или ручная сверка пользователя в протоколе.  
+- Фиксация ошибок: parse / map ticker / quote missing (классы из A9).
+
+## 6. Ожидаемый артефакт рядом
+
+Таблица прогонов: [`B9-таблица-экспериментов.md`](B9-таблица-экспериментов.md).
+
+## 7. Интерпретация (шаблон)
+
+- Если M1&M2 на B/C ≥ целей → H_DS подтверждается на текущем baseline.  
+- Если M2 >5% массово → пивот парсера/словаря/valuation (бэклог НИР 4).  
+- Multi-source (M5) проверяется на C после онбординга Т или manual.
