@@ -1,6 +1,6 @@
 # Снимок GitHub + KPI (для отчёта НИР 3)
 
-Дата снимка: **20.10.2026**. Источники: репозиторий [`funcid/funcfund`](https://github.com/funcid/funcfund), README roadmap, CustDev (14 интервью), Superset/Grafana product metrics (экспорт `analytics/exports/`).
+Дата снимка: **20.10.2026**. Источники: репозиторий [`funcid/funcfund`](https://github.com/funcid/funcfund) (приватный, доступ по запросу), README roadmap, CustDev (14 интервью), Superset/Grafana product metrics (экспорт `analytics/exports/`).
 
 ## GitHub — delivery (сент–окт 2026)
 
