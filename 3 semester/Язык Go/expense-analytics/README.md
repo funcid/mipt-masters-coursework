@@ -112,6 +112,9 @@ go test ./internal/usecase/transaction -race
 
 ## Google Sheets
 
+Демо-сценарий (видео): [`docs/demo-google-sheets.mp4`](docs/demo-google-sheets.mp4)  
+Login → Sync budgets/transactions → Load summary report.
+
 Готовый пример таблицы:  
 https://docs.google.com/spreadsheets/d/1SOthDDViugmRni2U_Mm5YCNfrZ4B7Tmg_sAlx22yCxw/edit
 
