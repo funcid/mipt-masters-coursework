@@ -53,7 +53,10 @@ function apiFetch(path, method, payload, token) {
     method: method || 'get',
     contentType: 'application/json',
     muteHttpExceptions: true,
-    headers: {}
+    headers: {
+      // free ngrok interstitial bypass for UrlFetchApp / API clients
+      'ngrok-skip-browser-warning': 'true'
+    }
   };
   if (token) options.headers.Authorization = 'Bearer ' + token;
   if (payload) options.payload = JSON.stringify(payload);
