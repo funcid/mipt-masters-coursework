@@ -144,26 +144,39 @@ function loadReport() {
   var from = settings.REPORT_FROM || '2024-01-01';
   var to = settings.REPORT_TO || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
   var result = apiFetch('/api/reports/summary?from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to), 'get', null, token);
-  if (result.code >= 300) throw new Error(result.body);
+  if (result.code >= 300) {
+    throw new Error('report HTTP ' + result.code + ': ' + result.body);
+  }
+
+  var data = result.json || {};
+  if (!data.from && !data.total_spent && data.raw) {
+    throw new Error('report JSON parse failed: ' + String(data.raw).substring(0, 300));
+  }
 
   var ss = SpreadsheetApp.getActive();
   var sh = ss.getSheetByName(REPORT_SHEET) || ss.insertSheet(REPORT_SHEET);
   sh.clear();
   sh.getRange(1, 1, 1, 5).setValues([['from', 'to', 'total_spent', 'cache_hit', 'generated_at']]);
   sh.getRange(2, 1, 1, 5).setValues([[
-    result.json.from,
-    result.json.to,
-    result.json.total_spent,
-    result.json.cache_hit,
+    String(data.from || from),
+    String(data.to || to),
+    Number(data.total_spent || 0),
+    data.cache_hit === true ? 'true' : 'false',
     new Date().toISOString()
   ]]);
   sh.getRange(4, 1, 1, 5).setValues([['category', 'spent', 'budget_limit', 'budget_usage_percent', 'over_budget']]);
-  var cats = result.json.categories || [];
+  var cats = data.categories || [];
   if (cats.length) {
     var rows = cats.map(function (c) {
-      return [c.category, c.spent, c.budget_limit, c.budget_usage_percent, c.over_budget];
+      return [
+        String(c.category || ''),
+        Number(c.spent || 0),
+        Number(c.budget_limit || 0),
+        Number(c.budget_usage_percent || 0),
+        c.over_budget === true ? 'true' : 'false'
+      ];
     });
     sh.getRange(5, 1, rows.length, 5).setValues(rows);
   }
-  SpreadsheetApp.getActive().toast('Отчёт загружен (cache_hit=' + result.json.cache_hit + ')', 'Expense Analytics', 4);
+  SpreadsheetApp.getActive().toast('Отчёт загружен (total=' + Number(data.total_spent || 0) + ', cache_hit=' + data.cache_hit + ')', 'Expense Analytics', 4);
 }
