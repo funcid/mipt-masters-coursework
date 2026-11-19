@@ -1,0 +1,12 @@
+.git
+.env
+cover.out
+coverage.html
+bin/
+*.md
+.idea/
+.vscode/
+tmp/
+google-sheets/
+samples/
+docs/

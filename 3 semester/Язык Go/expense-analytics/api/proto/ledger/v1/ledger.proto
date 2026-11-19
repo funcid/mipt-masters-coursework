@@ -1,0 +1,131 @@
+syntax = "proto3";
+
+package ledger.v1;
+
+option go_package = "github.com/mipt-masters/expense-analytics/api/gen/ledger/v1;ledgerv1";
+
+service LedgerService {
+  rpc CreateTransaction(CreateTransactionRequest) returns (Transaction);
+  rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
+  rpc ExportTransactionsCSV(ExportTransactionsRequest) returns (CSVPayload);
+  rpc ImportTransactionsCSV(ImportTransactionsRequest) returns (ImportResult);
+  rpc BulkCreateTransactions(BulkCreateTransactionsRequest) returns (BulkCreateResult);
+
+  rpc UpsertBudget(UpsertBudgetRequest) returns (Budget);
+  rpc ListBudgets(ListBudgetsRequest) returns (ListBudgetsResponse);
+
+  rpc GetSummaryReport(GetSummaryReportRequest) returns (SummaryReport);
+}
+
+message Transaction {
+  string id = 1;
+  string user_id = 2;
+  double amount = 3;
+  string category = 4;
+  string description = 5;
+  string date = 6; // YYYY-MM-DD
+  string created_at = 7;
+}
+
+message CreateTransactionRequest {
+  string user_id = 1;
+  double amount = 2;
+  string category = 3;
+  string description = 4;
+  string date = 5;
+}
+
+message ListTransactionsRequest {
+  string user_id = 1;
+  string from = 2;
+  string to = 3;
+}
+
+message ListTransactionsResponse {
+  repeated Transaction items = 1;
+}
+
+message ExportTransactionsRequest {
+  string user_id = 1;
+  string from = 2;
+  string to = 3;
+}
+
+message CSVPayload {
+  string content = 1;
+  string filename = 2;
+}
+
+message ImportTransactionsRequest {
+  string user_id = 1;
+  string csv_content = 2;
+}
+
+message ImportError {
+  int32 row = 1;
+  string message = 2;
+}
+
+message ImportResult {
+  int32 imported = 1;
+  int32 failed = 2;
+  repeated ImportError errors = 3;
+}
+
+message BulkCreateTransactionsRequest {
+  string user_id = 1;
+  repeated CreateTransactionRequest items = 2;
+  int32 workers = 3;
+}
+
+message BulkCreateResult {
+  int32 created = 1;
+  int32 failed = 2;
+  repeated ImportError errors = 3;
+}
+
+message Budget {
+  string id = 1;
+  string user_id = 2;
+  string category = 3;
+  double limit_amount = 4;
+  string period = 5; // monthly
+  string updated_at = 6;
+}
+
+message UpsertBudgetRequest {
+  string user_id = 1;
+  string category = 2;
+  double limit_amount = 3;
+  string period = 4;
+}
+
+message ListBudgetsRequest {
+  string user_id = 1;
+}
+
+message ListBudgetsResponse {
+  repeated Budget items = 1;
+}
+
+message GetSummaryReportRequest {
+  string user_id = 1;
+  string from = 2;
+  string to = 3;
+}
+
+message CategorySpend {
+  string category = 1;
+  double spent = 2;
+  double budget_limit = 3;
+  double budget_usage_percent = 4;
+  bool over_budget = 5;
+}
+
+message SummaryReport {
+  string from = 1;
+  string to = 2;
+  double total_spent = 3;
+  repeated CategorySpend categories = 4;
+  bool cache_hit = 5;
+}

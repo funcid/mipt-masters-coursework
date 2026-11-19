@@ -1,0 +1,267 @@
+openapi: 3.0.3
+info:
+  title: Expense Analytics API
+  version: 1.0.0
+  description: |
+    HTTP Gateway для системы аналитики личных трат.
+    Google Таблицы и внешние клиенты работают только через этот API.
+servers:
+  - url: http://localhost:8080
+    description: Local Docker Compose
+tags:
+  - name: health
+  - name: auth
+  - name: transactions
+  - name: budgets
+  - name: reports
+paths:
+  /ping:
+    get:
+      tags: [health]
+      summary: Liveness probe
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /api/auth/register:
+    post:
+      tags: [auth]
+      summary: Регистрация
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+  /api/auth/login:
+    post:
+      tags: [auth]
+      summary: Логин, получение JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+  /api/transactions:
+    get:
+      tags: [transactions]
+      security: [{bearerAuth: []}]
+      summary: Список транзакций
+      parameters:
+        - in: query
+          name: from
+          schema: {type: string, format: date}
+        - in: query
+          name: to
+          schema: {type: string, format: date}
+      responses:
+        "200":
+          description: OK
+        "401":
+          $ref: "#/components/responses/Error"
+    post:
+      tags: [transactions]
+      security: [{bearerAuth: []}]
+      summary: Создать транзакцию
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTransaction"
+      responses:
+        "201":
+          description: Created
+        "400":
+          $ref: "#/components/responses/Error"
+        "409":
+          description: Budget exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+  /api/transactions/bulk:
+    post:
+      tags: [transactions]
+      security: [{bearerAuth: []}]
+      summary: Конкурентный bulk-импорт (worker-pool)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                workers: {type: integer, example: 8}
+                items:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/CreateTransaction"
+      responses:
+        "200":
+          description: Summary
+  /api/transactions/import:
+    post:
+      tags: [transactions]
+      security: [{bearerAuth: []}]
+      summary: Импорт CSV
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                csv: {type: string}
+          text/csv:
+            schema:
+              type: string
+      responses:
+        "200":
+          description: Import result
+  /api/transactions/export.csv:
+    get:
+      tags: [transactions]
+      security: [{bearerAuth: []}]
+      summary: Экспорт транзакций в CSV
+      parameters:
+        - in: query
+          name: from
+          schema: {type: string, format: date}
+        - in: query
+          name: to
+          schema: {type: string, format: date}
+      responses:
+        "200":
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+  /api/budgets:
+    get:
+      tags: [budgets]
+      security: [{bearerAuth: []}]
+      summary: Список бюджетов
+      responses:
+        "200":
+          description: OK
+    post:
+      tags: [budgets]
+      security: [{bearerAuth: []}]
+      summary: Upsert бюджета по категории
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertBudget"
+      responses:
+        "201":
+          description: Created/Updated
+        "400":
+          $ref: "#/components/responses/Error"
+  /api/reports/summary:
+    get:
+      tags: [reports]
+      security: [{bearerAuth: []}]
+      summary: Сводный отчёт (с Redis cache)
+      parameters:
+        - in: query
+          name: from
+          required: true
+          schema: {type: string, format: date}
+        - in: query
+          name: to
+          required: true
+          schema: {type: string, format: date}
+      responses:
+        "200":
+          description: Summary report with cache_hit flag
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorBody"
+  schemas:
+    ErrorBody:
+      type: object
+      properties:
+        error: {type: string, example: validation_error}
+        message: {type: string}
+    RegisterRequest:
+      type: object
+      required: [email, password, name]
+      properties:
+        email: {type: string}
+        password: {type: string}
+        name: {type: string}
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: {type: string}
+        password: {type: string}
+    AuthResponse:
+      type: object
+      properties:
+        access_token: {type: string}
+        token_type: {type: string}
+        expires_in: {type: integer}
+        user:
+          type: object
+          properties:
+            id: {type: string}
+            email: {type: string}
+            name: {type: string}
+    CreateTransaction:
+      type: object
+      required: [amount, category, date]
+      properties:
+        amount: {type: number, example: 499.9}
+        category: {type: string, example: food}
+        description: {type: string}
+        date: {type: string, format: date, example: "2024-05-01"}
+    UpsertBudget:
+      type: object
+      required: [category, limit_amount]
+      properties:
+        category: {type: string, example: food}
+        limit_amount: {type: number, example: 15000}
+        period: {type: string, example: monthly}
