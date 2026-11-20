@@ -40,3 +40,7 @@ coverage.xml
 
 # Sensitive interview transcripts (custdev)
 2 semester/notebooks/startup/custdev/*.txt
+
+# Large webinar downloads and LMS raw dumps (keep transcripts in git)
+3 semester/Бизнес-основы разработки/семинары-группа-2/видео/
+3 semester/Бизнес-основы разработки/семинары-группа-2/raw/
